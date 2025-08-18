@@ -1,0 +1,117 @@
+#--------------------------------------------------------------------
+# Example Environment Configuration file
+#
+# This file can be used as a starting point for your own
+# custom .env files, and contains most of the possible settings
+# available in a default install.
+#
+# By default, all of the settings are commented out. If you want
+# to override the setting, you must un-comment it by removing the '#'
+# at the beginning of the line.
+#--------------------------------------------------------------------
+
+#--------------------------------------------------------------------
+# ENVIRONMENT
+#--------------------------------------------------------------------
+
+CI_ENVIRONMENT = development
+
+#--------------------------------------------------------------------
+# APP
+#--------------------------------------------------------------------
+
+# app.baseURL = ''
+# If you have trouble with `.`, you could also use `_`.
+# app_baseURL = ''
+# app.forceGlobalSecureRequests = false
+# app.CSPEnabled = false
+
+#--------------------------------------------------------------------
+# DATABASE
+#--------------------------------------------------------------------
+
+# database.default.hostname = localhost
+# database.default.database = ci4
+# database.default.username = root
+# database.default.password = root
+# database.default.DBDriver = MySQLi
+# database.default.DBPrefix =
+# database.default.port = 3306
+
+# If you use MySQLi as tests, first update the values of Config\Database::$tests.
+# database.tests.hostname = localhost
+# database.tests.database = ci4_test
+# database.tests.username = root
+# database.tests.password = root
+# database.tests.DBDriver = MySQLi
+# database.tests.DBPrefix =
+# database.tests.charset = utf8mb4
+# database.tests.DBCollat = utf8mb4_general_ci
+# database.tests.port = 3306
+
+#--------------------------------------------------------------------
+# ENCRYPTION
+#--------------------------------------------------------------------
+
+# encryption.key =
+
+#--------------------------------------------------------------------
+# SESSION
+#--------------------------------------------------------------------
+
+# session.driver = 'CodeIgniter\Session\Handlers\FileHandler'
+# session.savePath = null
+
+#--------------------------------------------------------------------
+# LOGGER
+#--------------------------------------------------------------------
+
+# logger.threshold = 4
+
+#--------------------------------------------------------------------
+# GOOGLE OAUTH
+#--------------------------------------------------------------------
+
+# Google OAuth Configuration
+# Get these from Google Cloud Console
+GOOGLE_CLIENT_ID = 62896079385-fi4q0irvajstumh02mqhat48vbs9rarr.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET = 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
+GOOGLE_REDIRECT_URI = http://lucky-draw-system.com/google/callback
+
+#--------------------------------------------------------------------
+# EMAIL CONFIGURATION
+#--------------------------------------------------------------------
+
+# Gmail SMTP Configuration
+# You need to use App Password, not your regular Gmail password
+# Go to: Google Account > Security > 2-Step Verification > App passwords
+email.protocol = smtp
+email.SMTPHost = smtp.gmail.com
+email.SMTPUser = ranbdrkc201@gmail.com
+email.SMTPPass = ikwxbancaqvkeyqn
+email.SMTPPort = 587
+email.SMTPCrypto = tls
+email.mailType = html
+email.charset = utf-8
+email.wordWrap = true
+
+#--------------------------------------------------------------------
+# PAYMENT CONFIGURATION
+#--------------------------------------------------------------------
+
+# PayPal Configuration
+PAYPAL_CLIENT_ID = AeyJHilUB19rba6Dxlh2OhI4z8K2tEFGAyIzBw28gLY4fX61LdoTEU4P517iL01EVbdBOoPjwmneZWnZ
+PAYPAL_CLIENT_SECRET = EIoSw6RH8b7sTSbtu_1IcWKHbDLZM0LxopS-fmnJcvB5a_GHbiK08LCaSPIYRdJR44N47DBtMtaG1W3K
+PAYPAL_MODE = sandbox
+PAYPAL_RETURN_URL = http://lucky-draw-system.com/wallet/paypal/success
+PAYPAL_CANCEL_URL = http://lucky-draw-system.com/wallet/paypal/cancel
+
+# Easypaisa Configuration
+EASYPAISA_STORE_ID = demo_store_id
+EASYPAISA_HASH_KEY = demo_hash_key
+EASYPAISA_ENV = sandbox
+EASYPAISA_RETURN_URL = http://lucky-draw-system.com/wallet/easypaisa/success
+EASYPAISA_CANCEL_URL = http://lucky-draw-system.com/wallet/easypaisa/cancel
+
+# Payment Demo Mode
+PAYMENT_DEMO_MODE = false
