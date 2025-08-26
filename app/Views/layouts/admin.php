@@ -300,7 +300,7 @@
                         <i class="fas fa-trophy mr-3"></i>
                         Winners
                     </a>
-                    
+
                     <a href="<?= base_url('admin/approve-claims') ?>" class="nav-item <?= strpos(current_url(), 'admin/approve-claims') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
                         <i class="fas fa-check-circle mr-3"></i>
                         Approve Claims
@@ -308,40 +308,54 @@
                 </div>
 
                 <!-- User Management -->
-                <div class="space-y-1">
-                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2 mt-4">User Management</div>
-
-                    <a href="<?= base_url('admin/users') ?>" class="nav-item <?= current_url() == base_url('admin/users') ? 'nav-item-active' : 'nav-item-inactive' ?>">
+                <div class="space-y-2">
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">User Management</h3>
+                    <a href="<?= base_url('admin/users') ?>" class="nav-item <?= strpos(current_url(), 'admin/users') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
                         <i class="fas fa-users mr-3 h-5 w-5 flex-shrink-0"></i>
-                        Users
+                        All Users
                     </a>
-
+                    <a href="<?= base_url('admin/special-users') ?>" class="nav-item <?= strpos(current_url(), 'admin/special-users') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
+                        <i class="fas fa-star mr-3 h-5 w-5 flex-shrink-0"></i>
+                        Special Users
+                    </a>
                     <a href="<?= base_url('admin/admins') ?>" class="nav-item <?= strpos(current_url(), 'admin/admins') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
                         <i class="fas fa-user-shield mr-3 h-5 w-5 flex-shrink-0"></i>
-                        Administrators
+                        Admin Users
                     </a>
                 </div>
 
-                <!-- Finance -->
-                <div class="space-y-1">
-                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2 mt-4">Finance</div>
-
-                    <a href="<?= base_url('admin/transactions') ?>" class="nav-item <?= strpos(current_url(), 'admin/transactions') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
-                        <i class="fas fa-credit-card mr-3 h-5 w-5 flex-shrink-0"></i>
-                        Transactions
+                <!-- Finance Management -->
+                <div class="space-y-2">
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</h3>
+                    <a href="<?= base_url('admin/topup-requests') ?>" class="nav-item <?= strpos(current_url(), 'admin/topup-requests') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
+                        <i class="fas fa-wallet mr-3 h-5 w-5 flex-shrink-0"></i>
+                        Top-up Requests
                     </a>
-
                     <a href="<?= base_url('admin/withdraw-requests') ?>" class="nav-item <?= strpos(current_url(), 'admin/withdraw-requests') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
-                        <i class="fas fa-money-check-alt mr-3 h-5 w-5 flex-shrink-0"></i>
-                        Withdraw Requests
+                        <i class="fas fa-money-bill-wave mr-3 h-5 w-5 flex-shrink-0"></i>
+                        Withdrawal Requests
                     </a>
+                    <a href="<?= base_url('admin/user-transfers') ?>" class="nav-item <?= strpos(current_url(), 'admin/user-transfers') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
+                        <i class="fas fa-exchange-alt mr-3 h-5 w-5 flex-shrink-0"></i>
+                        User Transfers
+                    </a>
+                    <a href="<?= base_url('admin/user-wallets') ?>" class="nav-item <?= strpos(current_url(), 'admin/user-wallets') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
+                        <i class="fas fa-credit-card mr-3 h-5 w-5 flex-shrink-0"></i>
+                        User Wallets
+                    </a>
+                </div>
 
+                <!-- System Management -->
+                <div class="space-y-2">
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">System</h3>
                     <a href="<?= base_url('admin/notifications') ?>" class="nav-item <?= strpos(current_url(), 'admin/notifications') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
                         <i class="fas fa-bell mr-3 h-5 w-5 flex-shrink-0"></i>
                         Notifications
                     </a>
-
-
+                    <a href="<?= base_url('admin/profile') ?>" class="nav-item <?= strpos(current_url(), 'admin/profile') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
+                        <i class="fas fa-user-circle mr-3 h-5 w-5 flex-shrink-0"></i>
+                        My Profile
+                    </a>
                 </div>
 
                 <!-- Add some padding at the bottom -->
@@ -440,7 +454,7 @@
                 <?= $this->include('components/notification_dropdown') ?>
 
                 <!-- Profile -->
-                <div class="flex items-center gap-x-3 p-2 rounded-xl bg-blue-600/90 hover:bg-blue-600 transition-all duration-200 group backdrop-blur-lg">
+                <div class="flex items-center gap-x-3 p-2 rounded-xl bg-blue-600/90 hover:bg-blue-600 transition-all duration-200 group backdrop-blur-lg cursor-pointer" onclick="showUserMenu()">
                     <div class="w-10 h-10 gradient-primary rounded-full flex items-center justify-center shadow-md ring-2 ring-white/30">
                         <span class="text-white font-semibold text-sm">
                             <?= strtoupper(substr(esc(session()->get('username') ?? 'Admin'), 0, 1)) ?>
@@ -452,6 +466,7 @@
                         </span>
                         <p class="text-xs text-white/80 group-hover:text-white transition-colors">Administrator</p>
                     </div>
+                    <i class="fas fa-chevron-down text-white/80 text-xs"></i>
                 </div>
 
                 <!-- Logout -->
@@ -488,9 +503,9 @@
                 </div>
             </div>
             <div class="p-2">
-                <a href="<?= base_url('admin/settings') ?>" class="flex items-center px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                    <i class="fas fa-user-cog mr-3"></i>
-                    Account Settings
+                <a href="<?= base_url('admin/profile') ?>" class="flex items-center px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-user-circle mr-3"></i>
+                    My Profile
                 </a>
                 <hr class="my-2">
                 <a href="<?= base_url('logout') ?>" class="flex items-center px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors">

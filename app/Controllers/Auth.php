@@ -97,7 +97,8 @@ class Auth extends BaseController
                 'password' => $this->request->getPost('password'),
                 'confirm_password' => $this->request->getPost('confirm_password'),
                 'full_name' => $this->request->getPost('full_name'),
-                'phone' => $this->request->getPost('phone')
+                'phone' => $this->request->getPost('phone'),
+                'referral_code' => $this->request->getPost('referral_code')
             ];
 
             // Check if passwords match
@@ -108,6 +109,18 @@ class Auth extends BaseController
                 return view('auth/register', ['errors' => $errors]);
             }
 
+            // Handle referral code
+            $referrerId = null;
+            $referralCode = null;
+            
+            if (!empty($formData['referral_code'])) {
+                $referrer = $this->userModel->findByReferralCode($formData['referral_code']);
+                if ($referrer && $referrer['id'] != session()->get('user_id')) {
+                    $referrerId = $referrer['id'];
+                    $referralCode = $formData['referral_code'];
+                }
+            }
+
             $data = [
                 'username' => $formData['username'],
                 'email' => $formData['email'],
@@ -115,7 +128,9 @@ class Auth extends BaseController
                 'full_name' => $formData['full_name'],
                 'phone' => $formData['phone'],
                 'is_admin' => false,
-                'status' => 'active'
+                'status' => 'active',
+                'referred_by' => $referrerId,
+                'referral_code' => $this->userModel->generateReferralCode()
             ];
 
             if (!$this->userModel->validate($data)) {
@@ -131,6 +146,11 @@ class Auth extends BaseController
             if ($userId) {
                 // Get the newly created user
                 $user = $this->userModel->find($userId);
+
+                // Handle referral bonus if user was referred
+                if ($referrerId && $referralCode) {
+                    $this->processReferralBonus($referrerId, $userId, $referralCode);
+                }
 
                 // Automatically log in the user
                 session()->set([
@@ -160,14 +180,84 @@ class Auth extends BaseController
         return view('auth/register');
     }
 
-    public function logout()
+    /**
+     * Process referral bonus for new user registration
+     */
+    private function processReferralBonus($referrerId, $referredId, $referralCode)
     {
-        session()->destroy();
-        session()->setFlashdata('success', 'You have been logged out successfully.');
-        return redirect()->to(base_url('login'));
+        try {
+            $settingModel = new \App\Models\SettingModel();
+            $referralModel = new \App\Models\ReferralModel();
+            $walletModel = new \App\Models\WalletModel();
+            $walletTransactionModel = new \App\Models\WalletTransactionModel();
+
+            // Get referral bonus amount from settings
+            $bonusAmount = $settingModel->getReferralBonusAmount();
+
+            // Create referral record
+            $referralId = $referralModel->createReferral($referrerId, $referredId, $referralCode, $bonusAmount);
+
+            if ($referralId) {
+                // Update referral status to active
+                $referralModel->updateReferralStatus($referralId, 'active');
+
+                // Get referrer's wallet
+                $referrerWallet = $walletModel->getUserWallet($referrerId);
+                
+                if ($referrerWallet) {
+                    // Add bonus to referrer's wallet
+                    $walletModel->updateBalance($referrerWallet['id'], $bonusAmount, 'add');
+
+                    // Record wallet transaction
+                    $walletTransactionModel->insert([
+                        'wallet_id' => $referrerWallet['id'],
+                        'type' => 'referral_bonus',
+                        'amount' => $bonusAmount,
+                        'payment_method' => 'system',
+                        'payment_reference' => 'Referral bonus for ' . $referralCode,
+                        'status' => 'completed',
+                        'balance_before' => $referrerWallet['balance'],
+                        'balance_after' => $referrerWallet['balance'] + $bonusAmount,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                    // Mark referral bonus as paid
+                    $referralModel->markBonusAsPaid($referralId);
+
+                    // Update user's referral bonus earned
+                    $this->userModel->addReferralBonus($referrerId, $bonusAmount);
+
+                    // Send notification to referrer
+                    $notificationService = new \App\Libraries\NotificationService();
+                    $notificationService->sendSystemMessage(
+                        $referrerId,
+                        'Referral Bonus Earned! 🎉',
+                        'Congratulations! You earned Rs. ' . number_format($bonusAmount, 2) . ' for referring a new user with code: ' . $referralCode,
+                        'high'
+                    );
+                }
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error processing referral bonus: ' . $e->getMessage());
+        }
     }
 
-    public function profile()
+    /**
+     * Handle referral link visits
+     */
+    public function referral($referralCode)
+    {
+        // Store referral code in session for registration
+        session()->set('referral_code', $referralCode);
+        
+        // Redirect to registration page
+        return redirect()->to(base_url('register'));
+    }
+
+    /**
+     * Show user's referral statistics
+     */
+    public function referralStats()
     {
         if (!session()->get('user_id')) {
             return redirect()->to(base_url('login'));
@@ -175,24 +265,50 @@ class Auth extends BaseController
 
         $userId = session()->get('user_id');
         $user = $this->userModel->find($userId);
+        $referralStats = $this->userModel->getReferralStats($userId);
+        $referredUsers = $this->userModel->getReferredUsers($userId);
 
-        if ($this->request->getMethod() === 'POST') {
-            $updateData = [
-                'full_name' => $this->request->getPost('full_name'),
-                'phone' => $this->request->getPost('phone')
-            ];
+        $data = [
+            'user' => $user,
+            'referral_stats' => $referralStats,
+            'referred_users' => $referredUsers
+        ];
 
-            if ($this->userModel->update($userId, $updateData)) {
-                session()->setFlashdata('success', 'Profile updated successfully!');
-                session()->set('full_name', $updateData['full_name']);
-                return redirect()->to(base_url('profile'));
-            } else {
-                session()->setFlashdata('error', 'Failed to update profile. Please try again.');
-            }
+        return view('auth/referral_stats', $data);
+    }
+
+    /**
+     * Show user's referrals
+     */
+    public function myReferrals()
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to(base_url('login'));
         }
 
-        return view('auth/profile', ['user' => $user]);
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+        $referralStats = $this->userModel->getReferralStats($userId);
+        $referredUsers = $this->userModel->getReferredUsers($userId);
+
+        $data = [
+            'user' => $user,
+            'referral_stats' => $referralStats,
+            'referred_users' => $referredUsers
+        ];
+
+        return view('auth/my_referrals', $data);
     }
+
+    public function logout()
+    {
+        session()->destroy();
+        session()->setFlashdata('success', 'You have been logged out successfully.');
+        return redirect()->to(base_url('login'));
+    }
+
+    // Profile functionality moved to Home controller
+    // Use /profile route for profile management
 
     public function changePassword()
     {

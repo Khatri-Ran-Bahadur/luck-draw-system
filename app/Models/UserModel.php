@@ -25,6 +25,17 @@ class UserModel extends Model
         'login_type',
         'reset_token',
         'reset_token_expires',
+        'referral_code',
+        'referred_by',
+        'referral_bonus_earned',
+        'wallet_name',
+        'wallet_number',
+        'wallet_type',
+        'is_special_user',
+        'wallet_active',
+        'bank_name',
+        'last_login',
+        'wallet_id',
         'created_at',
         'updated_at'
     ];
@@ -96,6 +107,205 @@ class UserModel extends Model
     public function getAdmins()
     {
         return $this->where('is_admin', true)->findAll();
+    }
+
+    /**
+     * Generate a unique referral code for a user
+     */
+    public function generateReferralCode($length = 8)
+    {
+        do {
+            $code = strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, $length));
+        } while ($this->where('referral_code', $code)->first());
+
+        return $code;
+    }
+
+    /**
+     * Generate a unique wallet ID for a user
+     */
+    public function generateWalletId($length = 12)
+    {
+        do {
+            $id = 'W' . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, $length - 1));
+        } while ($this->where('wallet_id', $id)->first());
+
+        return $id;
+    }
+
+    /**
+     * Get user by referral code
+     */
+    public function findByReferralCode($referralCode)
+    {
+        return $this->where('referral_code', $referralCode)
+            ->where('status', 'active')
+            ->first();
+    }
+
+    /**
+     * Get user's referral statistics
+     */
+    public function getReferralStats($userId)
+    {
+        $referralModel = new ReferralModel();
+        return $referralModel->getUserReferralStats($userId);
+    }
+
+    /**
+     * Get users referred by a specific user
+     */
+    public function getReferredUsers($userId)
+    {
+        $referralModel = new ReferralModel();
+        return $referralModel->getReferredUsers($userId);
+    }
+
+    /**
+     * Check if user can refer more people
+     */
+    public function canReferMore($userId)
+    {
+        $settingModel = new SettingModel();
+        $maxReferrals = $settingModel->getMaxReferralsPerUser();
+
+        if ($maxReferrals == 0) {
+            return true; // Unlimited referrals
+        }
+
+        $referralCount = $this->where('referred_by', $userId)->countAllResults();
+        return $referralCount < $maxReferrals;
+    }
+
+    /**
+     * Update user's referral bonus earned
+     */
+    public function addReferralBonus($userId, $amount)
+    {
+        $user = $this->find($userId);
+        if (!$user) {
+            return false;
+        }
+
+        $currentBonus = (float) ($user['referral_bonus_earned'] ?? 0);
+        $newBonus = $currentBonus + $amount;
+
+        return $this->update($userId, ['referral_bonus_earned' => $newBonus]);
+    }
+
+    // Wallet Management Methods
+    public function updateWalletDetails($userId, $walletName, $walletNumber, $walletType)
+    {
+        return $this->update($userId, [
+            'wallet_name' => $walletName,
+            'wallet_number' => $walletNumber,
+            'wallet_type' => $walletType
+        ]);
+    }
+
+    public function getWalletDetails($userId)
+    {
+        $user = $this->find($userId);
+        if (!$user) {
+            return null;
+        }
+
+        return [
+            'wallet_name' => $user['wallet_name'] ?? '',
+            'wallet_number' => $user['wallet_number'] ?? '',
+            'wallet_type' => $user['wallet_type'] ?? 'easypaisa'
+        ];
+    }
+
+    // Get random wallets for top-up display
+    public function getRandomWalletsForTopup($count = 3, $excludeUserId = null)
+    {
+        $query = $this->select('id, username, full_name, wallet_name, wallet_number, wallet_type')
+            ->where('wallet_name IS NOT NULL')
+            ->where('wallet_number IS NOT NULL')
+            ->where('wallet_name !=', '')
+            ->where('wallet_number !=', '')
+            ->where('status', 'active');
+
+        if ($excludeUserId) {
+            $query->where('id !=', $excludeUserId);
+        }
+
+        $wallets = $query->findAll();
+
+        if (count($wallets) <= $count) {
+            return $wallets;
+        }
+
+        // Shuffle and return random wallets
+        shuffle($wallets);
+        return array_slice($wallets, 0, $count);
+    }
+
+    // Get users with wallet details for admin
+    public function getUsersWithWalletDetailsForAdmin($limit = null)
+    {
+        $query = $this->select('users.*, wallets.balance, wallets.currency')
+            ->join('wallets', 'wallets.user_id = users.id', 'left')
+            ->where('users.is_admin', false)
+            ->orderBy('users.created_at', 'DESC');
+
+        if ($limit) {
+            $query->limit($limit);
+        }
+
+        return $query->findAll();
+    }
+
+    /**
+     * Get users with wallet details for special users display
+     */
+    public function getUsersWithWalletDetails($limit = 10, $offset = 0)
+    {
+        return $this->select('users.*, COALESCE(wallets.balance, 0) as balance')
+            ->join('wallets', 'wallets.user_id = users.id', 'left')
+            ->where('users.is_special_user', true)
+            ->orderBy('RAND()')
+            ->limit($limit, $offset)
+            ->findAll();
+    }
+
+    /**
+     * Count users with wallet details
+     */
+    public function countUsersWithWalletDetails()
+    {
+        return $this->where('is_special_user', true)->countAllResults();
+    }
+
+    /**
+     * Count active wallet users
+     */
+    public function countActiveWalletUsers()
+    {
+        return $this->where('wallet_active', true)
+            ->where('is_special_user', true)
+            ->countAllResults();
+    }
+
+    /**
+     * Update special user wallet information
+     */
+    public function updateSpecialUserWallet($userId, $walletName, $walletNumber, $walletType, $bankName = null, $isActive = true)
+    {
+        $data = [
+            'wallet_name' => $walletName,
+            'wallet_number' => $walletNumber,
+            'wallet_type' => $walletType,
+            'wallet_active' => $isActive,
+            'is_special_user' => true
+        ];
+
+        if ($walletType === 'bank' && $bankName) {
+            $data['bank_name'] = $bankName;
+        }
+
+        return $this->update($userId, $data);
     }
 
     /**
@@ -171,5 +381,66 @@ class UserModel extends Model
     {
         $winnerModel = new \App\Models\WinnerModel();
         return $winnerModel->getUserTotalWinnings($userId);
+    }
+
+    /**
+     * Get users with complete wallet details for topup display
+     */
+    public function getUsersWithCompleteWalletDetails($limit = 10, $offset = 0)
+    {
+        return $this->select('users.*, COALESCE(wallets.balance, 0) as balance')
+             ->join('wallets', 'wallets.user_id = users.id', 'left')
+             ->where('users.wallet_name IS NOT NULL')
+             ->where('users.wallet_name !=', '')
+             ->where('users.wallet_number IS NOT NULL')
+             ->where('users.wallet_number !=', '')
+             ->where('users.wallet_type IS NOT NULL')
+             ->where('users.is_special_user', true)
+             ->where('users.wallet_active', true)
+             ->orderBy('RAND()')
+             ->limit($limit, $offset)
+             ->findAll();
+    }
+
+    /**
+     * Count users with complete wallet details
+     */
+    public function countUsersWithCompleteWalletDetails()
+    {
+        return $this->where('wallet_name IS NOT NULL')
+             ->where('wallet_name !=', '')
+             ->where('users.wallet_number IS NOT NULL')
+             ->where('users.wallet_number !=', '')
+             ->where('users.wallet_type IS NOT NULL')
+             ->where('is_special_user', true)
+             ->where('wallet_active', true)
+             ->countAllResults();
+    }
+
+    /**
+     * Ensure user has a wallet ID, generate if missing
+     */
+    public function ensureWalletId($userId)
+    {
+        $user = $this->find($userId);
+        if (!$user) {
+            return false;
+        }
+
+        if (empty($user['wallet_id'])) {
+            $walletId = $this->generateWalletId();
+            $this->update($userId, ['wallet_id' => $walletId]);
+            return $walletId;
+        }
+
+        return $user['wallet_id'];
+    }
+
+    /**
+     * Get user by wallet ID
+     */
+    public function findByWalletId($walletId)
+    {
+        return $this->where('wallet_id', $walletId)->first();
     }
 }

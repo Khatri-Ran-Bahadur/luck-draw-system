@@ -13,6 +13,9 @@ class Wallet extends BaseController
     protected $walletModel;
     protected $walletTransactionModel;
     protected $userModel;
+    protected $settingModel;
+    protected $walletTopupRequestModel;
+    protected $userTransferModel;
     protected $paymentConfig;
     protected $notificationService;
     protected $currencyService;
@@ -22,6 +25,9 @@ class Wallet extends BaseController
         $this->walletModel = new \App\Models\WalletModel();
         $this->walletTransactionModel = new \App\Models\WalletTransactionModel();
         $this->userModel = new \App\Models\UserModel();
+        $this->settingModel = new \App\Models\SettingModel();
+        $this->walletTopupRequestModel = new \App\Models\WalletTopupRequestModel();
+        $this->userTransferModel = new \App\Models\UserTransferModel();
         $this->paymentConfig = config('Payment');
         $this->notificationService = new NotificationService();
         $this->currencyService = new CurrencyService();
@@ -29,26 +35,28 @@ class Wallet extends BaseController
 
     public function index()
     {
-        // Check if user is logged in
         if (!session()->get('user_id')) {
-            return redirect()->to('login');
+            return redirect()->to('/login');
         }
 
         $userId = session()->get('user_id');
-
-        // Get wallet information
         $wallet = $this->walletModel->getUserWallet($userId);
+        $recentTransactions = $this->walletTransactionModel->getUserTransactions($userId, 5);
+        $pendingTopups = $this->walletTopupRequestModel->getUserTopupRequests($userId, 5);
+        $user = $this->userModel->find($userId);
 
-        // Get recent transactions
-        $transactions = $this->walletTransactionModel->getUserTransactions($userId, 10);
-
-        // Get pending topups
-        $pendingTopups = $this->walletTransactionModel->getPendingTopups($userId);
+        // Ensure user has a wallet ID
+        if (empty($user['wallet_id'])) {
+            $walletId = $this->userModel->ensureWalletId($userId);
+            $user['wallet_id'] = $walletId;
+        }
 
         $data = [
+            'title' => 'My Wallet',
             'wallet' => $wallet,
-            'transactions' => $transactions,
-            'pendingTopups' => $pendingTopups
+            'recentTransactions' => $recentTransactions,
+            'pendingTopups' => $pendingTopups,
+            'user' => $user
         ];
 
         return view('wallet/index', $data);
@@ -56,73 +64,636 @@ class Wallet extends BaseController
 
     public function topup()
     {
-        // Check if user is logged in
+        if (!session()->get('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+
+        // Ensure user has a wallet ID
+        if (empty($user['wallet_id'])) {
+            $walletId = $this->userModel->ensureWalletId($userId);
+            $user['wallet_id'] = $walletId;
+        }
+
+        // Get users with wallet details for display
+        $walletUsers = $this->userModel->getUsersWithCompleteWalletDetails(3);
+
+        $data = [
+            'title' => 'Wallet Top-up',
+            'user' => $user,
+            'wallet' => $this->walletModel->getUserWallet($userId),
+            'walletUsers' => $walletUsers
+        ];
+
+        return view('wallet/topup', $data);
+    }
+
+    /**
+     * Get enabled payment methods based on environment variables
+     */
+    private function getEnabledPaymentMethods()
+    {
+        $methods = [];
+
+        // Manual top-up is always the primary method
+        if ($this->settingModel->getManualTopupEnabled()) {
+            $methods['manual'] = [
+                'name' => 'Manual Top-up (Slip/Proof)',
+                'description' => 'Upload payment slip or proof for admin approval',
+                'icon' => 'fas fa-upload',
+                'primary' => true
+            ];
+        }
+
+        // Only show other methods if enabled in environment
+        if ($this->settingModel->getPayPalEnabled()) {
+            $methods['paypal'] = [
+                'name' => 'PayPal',
+                'description' => 'Secure payment via PayPal',
+                'icon' => 'fab fa-paypal'
+            ];
+        }
+
+        if ($this->settingModel->getEasypaisaEnabled()) {
+            $methods['easypaisa'] = [
+                'name' => 'Easypaisa',
+                'description' => 'Mobile payment via Easypaisa',
+                'icon' => 'fas fa-mobile-alt'
+            ];
+        }
+
+        if ($this->settingModel->getJazzCashEnabled()) {
+            $methods['jazz_cash'] = [
+                'name' => 'Jazz Cash',
+                'description' => 'Mobile payment via Jazz Cash',
+                'icon' => 'fas fa-mobile-alt'
+            ];
+        }
+
+        if ($this->settingModel->getBankTransferEnabled()) {
+            $methods['bank'] = [
+                'name' => 'Bank Transfer',
+                'description' => 'Direct bank transfer',
+                'icon' => 'fas fa-university'
+            ];
+        }
+
+        return $methods;
+    }
+
+    // Manual top-up request
+    public function manualTopup()
+    {
         if (!session()->get('user_id')) {
             return redirect()->to('login')->with('error', 'Please login to access your wallet');
         }
 
         if ($this->request->getMethod() === 'POST') {
-            $amount = $this->request->getPost('final_amount') ?: $this->request->getPost('amount');
+            $amount = $this->request->getPost('amount');
             $paymentMethod = $this->request->getPost('payment_method');
+            $paymentProof = $this->request->getFile('payment_proof');
 
-            // Debug logging
+            // Validate amount
+            $minAmount = $this->settingModel->getMinTopupAmount();
+            $maxAmount = $this->settingModel->getMaxTopupAmount();
 
-            // Validate amount (PKR is primary currency)
-            if (!$amount || $amount < 500) {
-                return redirect()->back()->with('error', 'Please enter a valid amount (minimum Rs. 500)');
-            }
-
-            // Validate PayPal minimum
-            if ($paymentMethod === 'paypal' && !$this->currencyService->meetsPayPalMinimum($amount)) {
-                return redirect()->back()->with('error', 'PayPal requires minimum amount of Rs. 500');
+            if (!$amount || $amount < $minAmount || $amount > $maxAmount) {
+                return redirect()->back()->with('error', "Please enter a valid amount (Rs. {$minAmount} - Rs. {$maxAmount})");
             }
 
             // Validate payment method
-            if (!$paymentMethod || !in_array($paymentMethod, ['paypal', 'easypaisa'])) {
+            if (!$paymentMethod || !in_array($paymentMethod, ['easypaisa', 'jazz_cash', 'bank', 'manual'])) {
                 return redirect()->back()->with('error', 'Please select a valid payment method');
             }
 
             $userId = session()->get('user_id');
+            $wallet = $this->walletModel->getUserWallet($userId);
 
-            try {
-                $wallet = $this->walletModel->getUserWallet($userId);
+            // Handle file upload if provided
+            $proofPath = null;
+            if ($paymentProof && $paymentProof->isValid() && !$paymentProof->hasMoved()) {
+                $newName = $paymentProof->getRandomName();
+                $paymentProof->move(ROOTPATH . 'public/uploads/topup_proofs', $newName);
+                $proofPath = 'uploads/topup_proofs/' . $newName;
+            }
 
-                if (!$wallet) {
-                    return redirect()->back()->with('error', 'Failed to access wallet. Please try again or contact support.');
-                }
+            // Create top-up request
+            $requestId = $this->walletTopupRequestModel->insert([
+                'user_id' => $userId,
+                'amount' => $amount,
+                'payment_method' => $paymentMethod,
+                'payment_proof' => $proofPath,
+                'status' => 'pending',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
 
-                // Create pending transaction (use PKR amount)
-                $transactionId = $this->walletTransactionModel->createPendingTopup(
-                    $wallet['id'],
-                    $amount,
-                    $paymentMethod
-                );
+            if ($requestId) {
+                // Send notification to admin
+                $this->notificationService->notifyAdmin('topup_request', $userId, [
+                    'amount' => $amount,
+                    'payment_method' => $paymentMethod,
+                    'request_id' => $requestId
+                ]);
 
-
-                if (!$transactionId) {
-                    return redirect()->back()->with('error', 'Failed to create transaction. Please try again.');
-                }
-
-                // Redirect to payment processing based on method
-                if ($paymentMethod === 'paypal') {
-                    return $this->processPayPalPayment($transactionId, $amount);
-                } elseif ($paymentMethod === 'easypaisa') {
-                    return $this->processEasypaisaPayment($transactionId, $amount);
-                }
-            } catch (\Exception $e) {
-                log_message('error', 'Topup process failed: ' . $e->getMessage());
-                return redirect()->back()->with('error', 'An error occurred while processing your request. Please try again.');
+                return redirect()->to('wallet')->with('success', 'Top-up request submitted successfully. Please wait for admin approval.');
+            } else {
+                return redirect()->back()->with('error', 'Failed to submit top-up request. Please try again.');
             }
         }
 
-        // Show any error messages
         $data = [
-            'error' => session()->get('error'),
-            'success' => session()->get('success'),
-            'currencyService' => $this->currencyService
+            'min_amount' => $this->settingModel->getMinTopupAmount(),
+            'max_amount' => $this->settingModel->getMaxTopupAmount(),
+            'random_wallets' => $this->userModel->getRandomWalletsForTopup(
+                $this->settingModel->getWalletDisplayCount(),
+                session()->get('user_id')
+            )
         ];
 
-        return view('wallet/topup', $data);
+        return view('wallet/manual_topup', $data);
+    }
+
+    /**
+     * Submit manual topup request via AJAX
+     */
+    public function submitManualTopup()
+    {
+        if (!session()->get('user_id')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'User not logged in']);
+        }
+
+        if ($this->request->getMethod() !== 'POST') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request method']);
+        }
+
+        // Validate input
+        $amount = $this->request->getPost('amount');
+        $paymentMethod = $this->request->getPost('payment_method');
+        $notes = $this->request->getPost('notes');
+        $paymentProof = $this->request->getFile('payment_proof');
+
+        if (!$amount || $amount < 500 || $amount > 50000) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid amount']);
+        }
+
+        if (!$paymentMethod) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Payment method required']);
+        }
+
+        if (!$paymentProof || !$paymentProof->isValid()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Payment proof required']);
+        }
+
+        try {
+            $userId = session()->get('user_id');
+
+            // Handle file upload
+            $uploadPath = 'uploads/payment_proofs/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            $fileName = 'topup_' . $userId . '_' . time() . '.' . $paymentProof->getExtension();
+            $paymentProof->move($uploadPath, $fileName);
+            $filePath = $uploadPath . $fileName;
+
+            // Create topup request
+            $requestData = [
+                'user_id' => $userId,
+                'amount' => $amount,
+                'payment_method' => $paymentMethod,
+                'payment_proof' => $filePath,
+                'notes' => $notes,
+                'status' => 'pending'
+            ];
+
+            $requestId = $this->walletTopupRequestModel->insert($requestData);
+
+            if ($requestId) {
+                // Send notification to admin
+                $this->notificationService->notifyAdmin('topup_request', $userId, [
+                    'amount' => $amount,
+                    'payment_method' => $paymentMethod,
+                    'request_id' => $requestId
+                ]);
+
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Top-up request submitted successfully'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to create top-up request'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Manual topup submission failed: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'An error occurred while processing your request'
+            ]);
+        }
+    }
+
+    /**
+     * User-to-user money transfer (only for special users)
+     */
+    public function transfer()
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+
+        // Only special users can transfer money
+        if (!($user['is_special_user'] ?? false)) {
+            return redirect()->to('wallet')->with('error', 'Only special users can transfer money to other users');
+        }
+
+        if ($this->request->getMethod() === 'POST') {
+            $toUsername = $this->request->getPost('to_username');
+            $amount = (float) $this->request->getPost('amount');
+            $notes = $this->request->getPost('notes');
+
+            // Validate input
+            if (!$toUsername || !$amount || $amount <= 0) {
+                return redirect()->back()->with('error', 'Please provide valid recipient username and amount');
+            }
+
+            // Check if recipient exists
+            $recipient = $this->userModel->where('username', $toUsername)->first();
+            if (!$recipient) {
+                return redirect()->back()->with('error', 'Recipient user not found');
+            }
+
+            if ($recipient['id'] == $userId) {
+                return redirect()->back()->with('error', 'You cannot transfer money to yourself');
+            }
+
+            // Check if sender has sufficient balance
+            $senderWallet = $this->walletModel->getUserWallet($userId);
+            if (!$senderWallet || $senderWallet['balance'] < $amount) {
+                return redirect()->back()->with('error', 'Insufficient balance for transfer');
+            }
+
+            try {
+                // Create transfer request
+                $transferData = [
+                    'from_user_id' => $userId,
+                    'to_user_id' => $recipient['id'],
+                    'amount' => $amount,
+                    'status' => 'pending',
+                    'admin_notes' => $notes,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                $transferId = $this->userTransferModel->insert($transferData);
+                if ($transferId) {
+                    // Notify admin about the transfer request
+                    $this->notificationService->notifyAdmin('transfer_request', $userId, [
+                        'amount' => $amount,
+                        'recipient' => $toUsername,
+                        'transfer_id' => $transferId
+                    ]);
+
+                    return redirect()->back()->with('success', 'Transfer request submitted successfully. Waiting for admin approval.');
+                } else {
+                    return redirect()->back()->with('error', 'Failed to submit transfer request');
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Transfer request failed: ' . $e->getMessage());
+                return redirect()->back()->with('error', 'An error occurred while processing your transfer request');
+            }
+        }
+
+        // Get user's recent transfers
+        $recentTransfers = $this->userTransferModel->getUserTransfers($userId, 10);
+
+        // Get user's wallet balance
+        $wallet = $this->walletModel->getUserWallet($userId);
+
+        $data = [
+            'title' => 'Send Money',
+            'user' => $user,
+            'wallet' => $wallet,
+            'recentTransfers' => $recentTransfers
+        ];
+
+        return view('wallet/transfer', $data);
+    }
+
+    /**
+     * Withdraw money from wallet (only for special users)
+     */
+    public function withdraw()
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+
+        // Ensure user has a wallet ID
+        if (empty($user['wallet_id'])) {
+            $walletId = $this->userModel->ensureWalletId($userId);
+            $user['wallet_id'] = $walletId;
+        }
+
+        // All users can request withdrawals, but special users get priority
+        // Note: Special users can withdraw directly, normal users request withdrawals
+
+        if ($this->request->getMethod() === 'POST') {
+            $amount = (float) $this->request->getPost('amount');
+            $withdrawMethod = $this->request->getPost('withdraw_method');
+            $accountDetails = $this->request->getPost('account_details');
+            $notes = $this->request->getPost('notes');
+
+            // Validate input
+            if (!$amount || $amount <= 0) {
+                return redirect()->back()->with('error', 'Please provide a valid withdrawal amount');
+            }
+
+            if (!$withdrawMethod) {
+                return redirect()->back()->with('error', 'Please select a withdrawal method');
+            }
+
+            if (!$accountDetails) {
+                return redirect()->back()->with('error', 'Please provide account details for withdrawal');
+            }
+
+            // Check if user has sufficient balance
+            $wallet = $this->walletModel->getUserWallet($userId);
+            if (!$wallet || $wallet['balance'] < $amount) {
+                return redirect()->back()->with('error', 'Insufficient balance for withdrawal');
+            }
+
+            // Check minimum withdrawal amount
+            $minWithdraw = $this->settingModel->getMinWithdrawAmount() ?? 1000;
+            if ($amount < $minWithdraw) {
+                return redirect()->back()->with('error', "Minimum withdrawal amount is Rs. {$minWithdraw}");
+            }
+
+            try {
+                // Create withdrawal request
+                $withdrawData = [
+                    'user_id' => $userId,
+                    'amount' => $amount,
+                    'withdraw_method' => $withdrawMethod,
+                    'account_details' => $accountDetails,
+                    'notes' => $notes,
+                    'status' => 'pending',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                // Get user's wallet ID for the transaction
+                $wallet = $this->walletModel->getUserWallet($userId);
+                if (!$wallet) {
+                    return redirect()->back()->with('error', 'Wallet not found');
+                }
+
+                // Create withdrawal transaction
+                $transactionData = [
+                    'wallet_id' => $wallet['id'],
+                    'type' => 'withdrawal',
+                    'amount' => -$amount, // Negative amount for withdrawal
+                    'balance_before' => $wallet['balance'],
+                    'balance_after' => $wallet['balance'], // No change until completed
+                    'status' => 'pending',
+                    'description' => "Withdrawal request via {$withdrawMethod}",
+                    'payment_method' => $withdrawMethod,
+                    'payment_reference' => 'WITHDRAW_' . time(),
+                    'metadata' => json_encode([
+                        'withdraw_method' => $withdrawMethod,
+                        'account_details' => $accountDetails,
+                        'notes' => $notes,
+                        'timestamp' => time()
+                    ])
+                ];
+
+                $transactionId = $this->walletTransactionModel->insert($transactionData);
+                if ($transactionId) {
+                    // Notify admin about the withdrawal request
+                    $this->notificationService->notifyAdmin('withdrawal_request', $userId, [
+                        'amount' => $amount,
+                        'method' => $withdrawMethod,
+                        'account_details' => $accountDetails,
+                        'transaction_id' => $transactionId
+                    ]);
+
+                    return redirect()->back()->with('success', 'Withdrawal request submitted successfully. Waiting for admin approval.');
+                } else {
+                    return redirect()->back()->with('error', 'Failed to submit withdrawal request');
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Withdrawal request failed: ' . $e->getMessage());
+                return redirect()->back()->with('error', 'An error occurred while processing your withdrawal request');
+            }
+        }
+
+        // Get user's wallet balance
+        $wallet = $this->walletModel->getUserWallet($userId);
+
+        // Get recent withdrawal requests
+        $recentWithdrawals = $this->walletTransactionModel->getUserTransactions($userId, 10);
+        // Filter for withdrawals only
+        $recentWithdrawals = array_filter($recentWithdrawals, function ($transaction) {
+            return $transaction['type'] === 'withdrawal';
+        });
+
+        $data = [
+            'title' => 'Withdraw Money',
+            'user' => $user,
+            'wallet' => $wallet,
+            'recentWithdrawals' => $recentWithdrawals
+        ];
+
+        return view('wallet/withdraw', $data);
+    }
+
+    /**
+     * Show user requests list (only for special users)
+     */
+    public function userRequests()
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+
+        // Only special users can view user requests
+        if (!($user['is_special_user'] ?? false)) {
+            return redirect()->to('wallet')->with('error', 'Only special users can view user requests');
+        }
+
+        // Get pending topup requests
+        $pendingTopups = $this->walletTopupRequestModel->getPendingRequests(20);
+
+        // Get pending transfer requests
+        $pendingTransfers = $this->userTransferModel->getPendingTransfers(20);
+
+        $data = [
+            'title' => 'User Requests',
+            'user' => $user,
+            'pendingTopups' => $pendingTopups,
+            'pendingTransfers' => $pendingTransfers
+        ];
+
+        return view('wallet/user_requests', $data);
+    }
+
+    // Wallet profile management
+    public function profile()
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to('login')->with('error', 'Please login to access your wallet');
+        }
+
+        if ($this->request->getMethod() === 'POST') {
+            $walletName = $this->request->getPost('wallet_name');
+            $walletNumber = $this->request->getPost('wallet_number');
+            $walletType = $this->request->getPost('wallet_type');
+
+            if (!$walletName || !$walletNumber || !$walletType) {
+                return redirect()->back()->with('error', 'Please fill in all wallet details');
+            }
+
+            $userId = session()->get('user_id');
+
+            if ($this->userModel->updateWalletDetails($userId, $walletName, $walletNumber, $walletType)) {
+                return redirect()->back()->with('success', 'Wallet details updated successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to update wallet details');
+            }
+        }
+
+        $userId = session()->get('user_id');
+        $data = [
+            'wallet_details' => $this->userModel->getWalletDetails($userId),
+            'wallet' => $this->walletModel->getUserWallet($userId)
+        ];
+
+        return view('wallet/profile', $data);
+    }
+
+    /**
+     * Update user profile information
+     */
+    public function updateProfile()
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+        $fullName = $this->request->getPost('full_name');
+        $username = $this->request->getPost('username');
+        $email = $this->request->getPost('email');
+        $phone = $this->request->getPost('phone');
+
+        // Validate input
+        if (!$fullName || !$username || !$email) {
+            return redirect()->back()->with('error', 'Please fill in all required fields');
+        }
+
+        // Check if username is already taken by another user
+        $existingUser = $this->userModel->where('username', $username)->where('id !=', $userId)->first();
+        if ($existingUser) {
+            return redirect()->back()->with('error', 'Username is already taken');
+        }
+
+        // Check if email is already taken by another user
+        $existingUser = $this->userModel->where('email', $email)->where('id !=', $userId)->first();
+        if ($existingUser) {
+            return redirect()->back()->with('error', 'Email is already taken');
+        }
+
+        try {
+            $updateData = [
+                'full_name' => $fullName,
+                'username' => $username,
+                'email' => $email,
+                'phone' => $phone
+            ];
+
+            // Handle profile image upload
+            $profileImage = $this->request->getFile('profile_image');
+            if ($profileImage && $profileImage->isValid() && !$profileImage->hasMoved()) {
+                $uploadPath = 'uploads/profiles/';
+
+                // Create directory if it doesn't exist
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                }
+
+                $newName = $profileImage->getRandomName();
+                $profileImage->move($uploadPath, $newName);
+
+                $updateData['profile_image'] = $newName;
+            }
+
+            if ($this->userModel->update($userId, $updateData)) {
+                return redirect()->back()->with('success', 'Profile updated successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to update profile');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Profile update failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'An error occurred while updating profile');
+        }
+    }
+
+    /**
+     * Update wallet information
+     */
+    public function updateWallet()
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+        $walletName = $this->request->getPost('wallet_name');
+        $walletNumber = $this->request->getPost('wallet_number');
+        $walletType = $this->request->getPost('wallet_type');
+        $bankName = $this->request->getPost('bank_name');
+
+        // Validate input
+        if (!$walletName || !$walletNumber || !$walletType) {
+            return redirect()->back()->with('error', 'Please fill in all required fields');
+        }
+
+        try {
+            $updateData = [
+                'wallet_name' => $walletName,
+                'wallet_number' => $walletNumber,
+                'wallet_type' => $walletType
+            ];
+
+            // Add bank name if it's a bank type
+            if (in_array($walletType, ['bank', 'hbl', 'ubank', 'mcb', 'abank', 'nbp', 'sbank', 'citi', 'hsbc']) && $bankName) {
+                $updateData['bank_name'] = $bankName;
+            }
+
+            if ($this->userModel->update($userId, $updateData)) {
+                return redirect()->back()->with('success', 'Wallet information updated successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to update wallet information');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Wallet update failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'An error occurred while updating wallet information');
+        }
     }
 
     private function processPayPalPayment($transactionId, $amount)
@@ -339,94 +910,6 @@ class Wallet extends BaseController
     {
         session()->remove('easypaisa_payment');
         return redirect()->to('wallet')->with('error', 'Easypaisa payment was cancelled');
-    }
-
-    public function withdraw()
-    {
-        // Check if user is logged in
-        if (!session()->get('user_id')) {
-            return redirect()->to('login');
-        }
-
-        if ($this->request->getMethod() === 'POST') {
-            $amount = $this->request->getPost('amount');
-            $withdrawalMethod = $this->request->getPost('withdrawal_method');
-            $accountDetails = $this->request->getPost('account_details');
-
-            // Validate amount
-            if (!$amount || $amount < 10) {
-                return redirect()->back()->with('error', 'Minimum withdrawal amount is Rs. 10');
-            }
-
-            // Validate PayPal minimum for withdrawals
-            if ($withdrawalMethod === 'paypal' && !$this->currencyService->meetsPayPalMinimum($amount)) {
-                return redirect()->back()->with('error', 'PayPal withdrawal requires minimum amount of Rs. 280');
-            }
-
-            $userId = session()->get('user_id');
-
-            // Check if user has sufficient balance
-            if (!$this->walletModel->hasSufficientBalance($userId, $amount)) {
-                return redirect()->back()->with('error', 'Insufficient wallet balance');
-            }
-
-            // Get wallet first
-            $wallet = $this->walletModel->getUserWallet($userId);
-
-            // Create withdrawal request (pending admin approval)
-            $transactionId = $this->walletTransactionModel->insert([
-                'wallet_id' => $wallet['id'],
-                'type' => 'withdrawal',
-                'amount' => -$amount,
-                'balance_before' => $wallet['balance'],
-                'balance_after' => $wallet['balance'], // No change until approved
-                'status' => 'pending',
-                'description' => 'Withdrawal request - Rs. ' . number_format($amount, 2),
-                'payment_method' => $withdrawalMethod,
-                'metadata' => json_encode([
-                    'withdrawal_method' => $withdrawalMethod,
-                    'account_details' => $accountDetails,
-                    'requested_at' => time()
-                ])
-            ]);
-
-            // Try to send notification to admin about withdrawal request
-            try {
-                $this->notificationService->notifyAdmin('user_withdraw', $userId, [
-                    'amount' => $amount,
-                    'withdrawal_method' => $withdrawalMethod,
-                    'transaction_id' => $transactionId,
-                    'account_details' => $accountDetails
-                ]);
-                log_message('info', 'Withdrawal: Admin notification sent successfully for transaction ' . $transactionId);
-            } catch (\Exception $e) {
-                // Log notification error but don't fail the withdrawal request
-                log_message('error', 'Withdrawal: Failed to send admin notification - ' . $e->getMessage());
-            }
-
-            return redirect()->to('wallet')->with('success', 'Withdrawal request submitted successfully. It will be processed within 24-48 hours.');
-        }
-
-        // Get user's withdrawal history
-        $userId = session()->get('user_id');
-        $wallet = $this->walletModel->getUserWallet($userId);
-
-        // Get recent withdrawal requests
-        $withdrawalHistory = $this->walletTransactionModel
-            ->select('wallet_transactions.*, wallets.balance as wallet_balance')
-            ->join('wallets', 'wallets.id = wallet_transactions.wallet_id')
-            ->where('wallets.user_id', $userId)
-            ->where('wallet_transactions.type', 'withdrawal')
-            ->orderBy('wallet_transactions.created_at', 'DESC')
-            ->limit(10)
-            ->findAll();
-
-        $data = [
-            'wallet' => $wallet,
-            'withdrawal_history' => $withdrawalHistory
-        ];
-
-        return view('wallet/withdraw', $data);
     }
 
     public function transactions()

@@ -169,6 +169,10 @@
                                     <i class="fas fa-tachometer-alt mr-2"></i>
                                     Dashboard
                                 </a>
+                                <a href="<?= base_url('profile') ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">
+                                    <i class="fas fa-user-circle mr-2"></i>
+                                    My Profile
+                                </a>
                                 <a href="<?= base_url('my-winnings') ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">
                                     <i class="fas fa-trophy mr-2"></i>
                                     My Winnings

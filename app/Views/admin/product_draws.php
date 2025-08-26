@@ -59,13 +59,9 @@
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center space-x-4">
-                                        <?php if (!empty($draw['product_image'])): ?>
-                                            <img src="<?= base_url($draw['product_image']) ?>" alt="Product" class="w-16 h-16 object-cover rounded-xl border-2 border-blue-200">
-                                        <?php else: ?>
-                                            <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center">
-                                                <i class="fas fa-box-open text-blue-600 text-lg"></i>
-                                            </div>
-                                        <?php endif; ?>
+                                        <div class="w-16 h-16 rounded-xl border-2 border-blue-200 overflow-hidden">
+                                            <?= get_product_image($draw['product_image'], 'w-16 h-16 object-cover rounded-xl border-2 border-blue-200', 'fas fa-box-open') ?>
+                                        </div>
                                         <div>
                                             <div class="text-sm font-medium text-gray-900"><?= esc($draw['product_name'] ?? 'N/A') ?></div>
                                             <div class="text-xs text-gray-500"><?= esc($draw['title']) ?></div>

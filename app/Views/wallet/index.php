@@ -24,138 +24,237 @@
                 </div>
             </div>
 
+            <!-- Wallet ID Display -->
+            <div class="bg-white bg-opacity-20 rounded-xl p-4 mt-6 border border-white border-opacity-30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-medium text-white mb-1">Your Wallet ID</h4>
+                        <code class="text-lg font-mono font-bold text-yellow-300"><?= esc($user['wallet_id'] ?? 'Not Generated') ?></code>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white bg-opacity-20 text-white">
+                        <i class="fas fa-id-card mr-1"></i>Wallet ID
+                    </span>
+                </div>
+                <p class="text-xs text-blue-100 mt-2">Share this ID with others for wallet transfers</p>
+            </div>
+
             <!-- Quick Actions -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <a href="<?= base_url('wallet/topup') ?>" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl p-6 text-center hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1">
-                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-plus text-white text-xl"></i>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <a href="<?= base_url('wallet/topup') ?>" class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-lg p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:scale-105">
+                    <div class="flex items-center">
+                        <div class="bg-white bg-opacity-20 rounded-full p-3 mr-4">
+                            <i class="fas fa-plus text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">Top Up Wallet</h3>
+                            <p class="text-blue-100 text-sm">Add money to your wallet</p>
+                        </div>
                     </div>
-                    <h3 class="text-lg font-semibold mb-2">Top Up Wallet</h3>
-                    <p class="text-blue-100 text-sm">Add money via PayPal or Easypaisa</p>
                 </a>
 
-                <a href="<?= base_url('wallet/withdraw') ?>" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl p-6 text-center hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1">
-                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-arrow-down text-white text-xl"></i>
-                    </div>
-                    <h3 class="text-lg font-semibold mb-2">Withdraw Funds</h3>
-                    <p class="text-green-100 text-sm">Request withdrawal to your account</p>
-                </a>
-
-                <a href="<?= base_url('wallet/transactions') ?>" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl p-6 text-center hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1">
-                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-history text-white text-xl"></i>
-                    </div>
-                    <h3 class="text-lg font-semibold mb-2">Transaction History</h3>
-                    <p class="text-purple-100 text-sm">View all your wallet activities</p>
-                </a>
-            </div>
-
-            <!-- Payment System Status -->
-            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900">Payment System Status</h2>
-                    <a href="<?= base_url('wallet/payment-status') ?>" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        View Details <i class="fas fa-arrow-right ml-1"></i>
+                <?php if ($user['is_special_user'] ?? false): ?>
+                    <a href="<?= base_url('wallet/transfer') ?>" class="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl shadow-lg p-6 text-white hover:from-green-700 hover:to-green-800 transition-all duration-300 transform hover:scale-105">
+                        <div class="flex items-center">
+                            <div class="bg-white bg-opacity-20 rounded-full p-3 mr-4">
+                                <i class="fas fa-exchange-alt text-2xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold">Send Money</h3>
+                                <p class="text-green-100 text-sm">Transfer to other users</p>
+                            </div>
+                        </div>
                     </a>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <i class="fab fa-paypal text-blue-600"></i>
+                <?php endif; ?>
+
+                <a href="<?= base_url('wallet/withdraw') ?>" class="bg-gradient-to-r from-purple-600 to-purple-700 rounded-2xl shadow-lg p-6 text-white hover:from-purple-700 hover:to-purple-800 transition-all duration-300 transform hover:scale-105">
+                    <div class="flex items-center">
+                        <div class="bg-white bg-opacity-20 rounded-full p-3 mr-4">
+                            <i class="fas fa-money-bill-wave text-2xl"></i>
                         </div>
                         <div>
-                            <p class="font-medium text-gray-900">PayPal</p>
-                            <p class="text-sm text-gray-600">Ready for payments</p>
+                            <h3 class="text-lg font-semibold">Withdraw Money</h3>
+                            <p class="text-purple-100 text-sm">Request withdrawal from your wallet</p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-mobile-alt text-green-600"></i>
-                        </div>
-                        <div>
-                            <p class="font-medium text-gray-900">Easypaisa</p>
-                            <p class="text-sm text-gray-600">Ready for payments</p>
-                        </div>
-                    </div>
-                </div>
+                </a>
             </div>
 
-            <!-- Pending Topups -->
-            <?php if (!empty($pendingTopups)): ?>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
-                    <h3 class="text-lg font-semibold text-yellow-800 mb-4">
-                        <i class="fas fa-clock mr-2"></i>
-                        Pending Topups
-                    </h3>
-                    <div class="space-y-3">
-                        <?php foreach ($pendingTopups as $topup): ?>
-                            <div class="flex items-center justify-between p-4 bg-yellow-100 rounded-lg">
+            <!-- Special User Actions (Only for Special Users) -->
+            <?php if ($user['is_special_user'] ?? false): ?>
+                <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-star text-2xl mr-3"></i>
+                            <div>
+                                <h3 class="text-xl font-semibold">Special User Actions</h3>
+                                <p class="text-yellow-100">Manage user requests and withdrawals</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <a href="<?= base_url('wallet/user-requests') ?>" class="bg-white bg-opacity-20 rounded-xl p-4 hover:bg-opacity-30 transition-all duration-300">
+                            <div class="flex items-center">
+                                <i class="fas fa-list-alt text-xl mr-3"></i>
                                 <div>
-                                    <p class="font-semibold text-yellow-800">Rs. <?= number_format($topup['amount'], 2) ?></p>
-                                    <p class="text-sm text-yellow-600"><?= ucfirst($topup['payment_method']) ?> • <?= date('M j, Y g:i A', strtotime($topup['created_at'])) ?></p>
+                                    <h4 class="font-semibold">User Requests</h4>
+                                    <p class="text-yellow-100 text-sm">View pending topups & transfers</p>
                                 </div>
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-200 text-yellow-800">
-                                    Pending
+                            </div>
+                        </a>
+
+                        <a href="<?= base_url('profile') ?>" class="bg-white bg-opacity-20 rounded-xl p-4 hover:bg-opacity-30 transition-all duration-300">
+                            <div class="flex items-center">
+                                <i class="fas fa-user-cog text-xl mr-3"></i>
+                                <div>
+                                    <h4 class="font-semibold">My Profile</h4>
+                                    <p class="text-yellow-100 text-sm">Manage your profile & wallet details</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Special User Dashboard (Only for Special Users) -->
+            <?php if ($user['is_special_user'] ?? false): ?>
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <i class="fas fa-chart-line text-2xl text-purple-600 mr-3"></i>
+                            <h3 class="text-xl font-semibold text-gray-900">Special User Dashboard</h3>
+                        </div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                            <i class="fas fa-star mr-1"></i>Special User
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Pending Topup Requests -->
+                        <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-clock text-blue-600 text-xl"></i>
+                                </div>
+                                <span class="text-2xl font-bold text-blue-600">
+                                    <?= count($pendingTopups) ?>
                                 </span>
                             </div>
-                        <?php endforeach; ?>
+                            <h4 class="font-semibold text-blue-900 mb-1">Pending Topups</h4>
+                            <p class="text-sm text-blue-700">Awaiting your approval</p>
+                            <a href="<?= base_url('wallet/user-requests') ?>" class="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium mt-2">
+                                View Requests <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+
+                        <!-- Transfer Balance -->
+                        <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-exchange-alt text-green-600 text-xl"></i>
+                                </div>
+                                <span class="text-2xl font-bold text-green-600">
+                                    <i class="fas fa-infinity text-lg"></i>
+                                </span>
+                            </div>
+                            <h4 class="font-semibold text-green-900 mb-1">Transfer Balance</h4>
+                            <p class="text-sm text-green-700">Send money to users</p>
+                            <a href="<?= base_url('wallet/transfer') ?>" class="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium mt-2">
+                                Transfer Now <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+
+                        <!-- User Requests -->
+                        <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-users text-purple-600 text-xl"></i>
+                                </div>
+                                <span class="text-2xl font-bold text-purple-600">
+                                    <i class="fas fa-list text-lg"></i>
+                                </span>
+                            </div>
+                            <h4 class="font-semibold text-purple-900 mb-1">User Requests</h4>
+                            <p class="text-sm text-purple-700">Manage all requests</p>
+                            <a href="<?= base_url('wallet/user-requests') ?>" class="inline-flex items-center text-purple-600 hover:text-purple-700 text-sm font-medium mt-2">
+                                View All <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>
 
             <!-- Recent Transactions -->
-            <div class="bg-white rounded-2xl shadow-lg border border-gray-100">
-                <div class="px-8 py-6 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xl font-semibold text-gray-900">Recent Transactions</h3>
-                        <a href="<?= base_url('wallet/transactions') ?>" class="text-blue-600 hover:text-blue-700 font-medium">
-                            View All
-                        </a>
-                    </div>
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Recent Transactions</h3>
+                    <a href="<?= base_url('wallet/transactions') ?>" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        View All <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
                 </div>
 
-                <div class="p-8">
-                    <?php if (empty($transactions)): ?>
-                        <div class="text-center py-12">
-                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <i class="fas fa-receipt text-2xl text-gray-400"></i>
-                            </div>
-                            <p class="text-gray-500 text-lg">No transactions yet</p>
-                            <p class="text-gray-400 mt-2">Your transaction history will appear here</p>
+                <?php if (empty($recentTransactions)): ?>
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-receipt text-2xl text-gray-400"></i>
                         </div>
-                    <?php else: ?>
-                        <div class="space-y-4">
-                            <?php foreach ($transactions as $transaction): ?>
-                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-12 h-12 rounded-xl flex items-center justify-center <?= $transaction['type'] === 'topup' || $transaction['type'] === 'draw_win' ? 'bg-green-100' : 'bg-red-100' ?>">
-                                            <i class="fas <?= $transaction['type'] === 'topup' ? 'fa-plus' : ($transaction['type'] === 'draw_win' ? 'fa-trophy' : 'fa-minus') ?> text-lg <?= $transaction['type'] === 'topup' || $transaction['type'] === 'draw_win' ? 'text-green-600' : 'text-red-600' ?>"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-semibold text-gray-900"><?= esc($transaction['description']) ?></p>
-                                            <p class="text-sm text-gray-500">
-                                                <?= date('M j, Y g:i A', strtotime($transaction['created_at'])) ?>
-                                                <?php if ($transaction['payment_method'] && $transaction['payment_method'] !== 'wallet'): ?>
-                                                    • <?= ucfirst($transaction['payment_method']) ?>
-                                                <?php endif; ?>
-                                            </p>
-                                        </div>
+                        <p class="text-gray-500">No transactions yet</p>
+                        <p class="text-gray-400 mt-2">Your transaction history will appear here</p>
+                    </div>
+                <?php else: ?>
+                    <div class="space-y-4">
+                        <?php foreach ($recentTransactions as $transaction): ?>
+                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 <?= $transaction['type'] === 'topup' ? 'bg-green-100' : ($transaction['type'] === 'withdrawal' ? 'bg-red-100' : 'bg-blue-100') ?> rounded-full flex items-center justify-center">
+                                        <i class="fas <?= $transaction['type'] === 'topup' ? 'fa-plus text-green-600' : ($transaction['type'] === 'withdrawal' ? 'fa-minus text-red-600' : 'fa-exchange-alt text-blue-600') ?> text-sm"></i>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="font-semibold <?= $transaction['amount'] >= 0 ? 'text-green-600' : 'text-red-600' ?>">
-                                            <?= $transaction['amount'] >= 0 ? '+' : '' ?>Rs. <?= number_format(abs($transaction['amount']), 2) ?>
-                                        </p>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $transaction['status'] === 'completed' ? 'bg-green-100 text-green-800' : ($transaction['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') ?>">
-                                            <?= ucfirst($transaction['status']) ?>
-                                        </span>
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-900"><?= esc($transaction['description']) ?></h4>
+                                        <p class="text-xs text-gray-500"><?= date('M d, Y H:i', strtotime($transaction['created_at'])) ?></p>
                                     </div>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-semibold <?= $transaction['amount'] >= 0 ? 'text-green-600' : 'text-red-600' ?>">
+                                        <?= $transaction['amount'] >= 0 ? '+' : '' ?>Rs. <?= number_format($transaction['amount'], 2) ?>
+                                    </div>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium <?= $transaction['status'] === 'completed' ? 'bg-green-100 text-green-800' : ($transaction['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') ?>">
+                                        <?= ucfirst($transaction['status']) ?>
+                                    </span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
+
+            <!-- Pending Topups -->
+            <?php if (!empty($pendingTopups)): ?>
+                <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Pending Topup Requests</h3>
+                    <div class="space-y-4">
+                        <?php foreach ($pendingTopups as $topup): ?>
+                            <div class="flex items-center justify-between p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-clock text-yellow-600 text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-900">Topup Request</h4>
+                                        <p class="text-xs text-gray-500">Amount: Rs. <?= number_format($topup['amount'], 2) ?></p>
+                                        <p class="text-xs text-gray-500">Submitted: <?= date('M d, Y H:i', strtotime($topup['created_at'])) ?></p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        Pending Approval
+                                    </span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <!-- Quick Stats -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
@@ -169,7 +268,7 @@
                             <p class="text-2xl font-bold text-gray-900">
                                 Rs. <?= number_format(array_sum(array_map(function ($t) {
                                         return $t['type'] === 'topup' && $t['status'] === 'completed' ? $t['amount'] : 0;
-                                    }, $transactions)), 2) ?>
+                                    }, $recentTransactions)), 2) ?>
                             </p>
                         </div>
                     </div>
@@ -185,7 +284,7 @@
                             <p class="text-2xl font-bold text-gray-900">
                                 Rs. <?= number_format(array_sum(array_map(function ($t) {
                                         return $t['type'] === 'draw_win' && $t['status'] === 'completed' ? $t['amount'] : 0;
-                                    }, $transactions)), 2) ?>
+                                    }, $recentTransactions)), 2) ?>
                             </p>
                         </div>
                     </div>
@@ -198,7 +297,7 @@
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Total Transactions</p>
-                            <p class="text-2xl font-bold text-gray-900"><?= count($transactions) ?></p>
+                            <p class="text-2xl font-bold text-gray-900"><?= count($recentTransactions) ?></p>
                         </div>
                     </div>
                 </div>

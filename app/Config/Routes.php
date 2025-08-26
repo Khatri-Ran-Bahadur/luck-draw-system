@@ -32,14 +32,17 @@ $routes->post('login', 'Auth::login');
 $routes->get('register', 'Auth::register');
 $routes->post('register', 'Auth::register');
 $routes->get('logout', 'Auth::logout');
-$routes->get('profile', 'Auth::profile');
-$routes->post('profile', 'Auth::profile');
 $routes->get('change-password', 'Auth::changePassword');
 $routes->post('change-password', 'Auth::changePassword');
 $routes->get('forgot-password', 'Auth::forgotPassword');
 $routes->post('forgot-password', 'Auth::forgotPassword');
 $routes->get('reset-password/(:any)', 'Auth::resetPassword/$1');
 $routes->post('reset-password/(:any)', 'Auth::resetPassword/$1');
+
+// Referral routes
+$routes->get('referral/(:any)', 'Auth::referral/$1');
+$routes->get('my-referrals', 'Auth::myReferrals');
+$routes->get('referral-stats', 'Auth::referralStats');
 
 // Google OAuth routes
 $routes->get('auth/google', 'Auth::googleLogin');
@@ -71,8 +74,17 @@ $routes->get('draw/(:any)/(:num)', 'LuckyDraw::viewDraw/$1/$2');
 $routes->get('wallet', 'Wallet::index');
 $routes->get('wallet/topup', 'Wallet::topup');
 $routes->post('wallet/topup', 'Wallet::topup');
+$routes->get('wallet/manual-topup', 'Wallet::manualTopup');
+$routes->post('wallet/manual-topup', 'Wallet::manualTopup');
+$routes->post('wallet/manual-topup/submit', 'Wallet::submitManualTopup');
+$routes->get('wallet/transfer', 'Wallet::transfer');
+$routes->post('wallet/transfer', 'Wallet::transfer');
 $routes->get('wallet/withdraw', 'Wallet::withdraw');
 $routes->post('wallet/withdraw', 'Wallet::withdraw');
+$routes->get('wallet/profile', 'Wallet::profile');
+$routes->post('wallet/update-profile', 'Wallet::updateProfile');
+$routes->post('wallet/update-wallet', 'Wallet::updateWallet');
+$routes->get('wallet/user-requests', 'Wallet::userRequests');
 $routes->get('wallet/transactions', 'Wallet::transactions');
 
 // PayPal payment routes
@@ -104,15 +116,18 @@ $routes->get('easypaisa/complete', 'Easypaisa::complete');
 
 // User dashboard
 $routes->get('dashboard', 'Home::dashboard');
+$routes->get('profile', 'Home::profile');
+$routes->post('update-profile', 'Home::updateProfile');
+$routes->post('update-wallet', 'Home::updateWallet');
 
 // Admin routes
 $routes->group('admin', ['filter' => 'admin'], function ($routes) {
-    $routes->get('dashboard', 'Admin::index');
-    $routes->get('users', 'Admin::users');
-    $routes->get('users/view/(:num)', 'Admin::viewUser/$1');
-    $routes->get('users/edit/(:num)', 'Admin::editUser/$1');
-    $routes->post('users/edit/(:num)', 'Admin::editUser/$1');
-    $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
+    $routes->get('dashboard', 'Admin::dashboard');
+    $routes->get('profile', 'Admin::profile');
+    $routes->post('update-profile', 'Admin::updateProfile');
+    $routes->post('change-password', 'Admin::changePassword');
+    $routes->get('application-settings', 'Admin::applicationSettings');
+    $routes->post('save-application-settings', 'Admin::saveSettings');
 
     // Admin Management
     $routes->get('admins', 'Admin::admins');
@@ -181,6 +196,46 @@ $routes->group('admin', ['filter' => 'admin'], function ($routes) {
 
     $routes->get('settings', 'Admin::settings');
     $routes->post('settings', 'Admin::settings');
+
+    // Referral Management
+    $routes->get('referrals', 'Admin::referrals');
+    $routes->get('referral-settings', 'Admin::referralSettings');
+    $routes->post('referral-settings', 'Admin::referralSettings');
+    $routes->get('approve-referral-bonus/(:num)', 'Admin::approveReferralBonus/$1');
+    $routes->post('approve-referral-bonus/(:num)', 'Admin::approveReferralBonus/$1');
+
+    // Wallet top-up management
+    $routes->get('topup-requests', 'Admin::topupRequests');
+    $routes->post('approve-topup-request/(:num)', 'Admin::approveTopupRequest/$1');
+    $routes->post('reject-topup-request/(:num)', 'Admin::rejectTopupRequest/$1');
+
+    // User transfer management
+    $routes->get('user-transfers', 'Admin::userTransfers');
+    $routes->get('process-user-transfer/(:num)', 'Admin::processUserTransfer/$1');
+    $routes->post('process-user-transfer/(:num)', 'Admin::processUserTransfer/$1');
+    $routes->get('reject-user-transfer/(:num)', 'Admin::rejectUserTransfer/$1');
+    $routes->post('reject-user-transfer/(:num)', 'Admin::rejectUserTransfer/$1');
+
+    // Payment settings
+    $routes->get('payment-settings', 'Admin::paymentSettings');
+    $routes->post('payment-settings', 'Admin::paymentSettings');
+
+    // User Management
+    $routes->get('users', 'Admin::users');
+    $routes->get('users/view/(:num)', 'Admin::viewUser/$1');
+    $routes->get('users/edit/(:num)', 'Admin::editUser/$1');
+    $routes->post('users/edit/(:num)', 'Admin::editUser/$1');
+    $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
+
+    // User wallet management
+    $routes->get('user-wallets', 'Admin::userWallets');
+    $routes->get('edit-user-wallet/(:num)', 'Admin::editUserWallet/$1');
+    $routes->post('edit-user-wallet/(:num)', 'Admin::editUserWallet/$1');
+    $routes->get('special-users', 'Admin::specialUsers');
+    $routes->get('edit-special-user/(:num)', 'Admin::editSpecialUser/$1');
+    $routes->post('edit-special-user/(:num)', 'Admin::editSpecialUser/$1');
+    $routes->get('make-special-user/(:num)', 'Admin::makeSpecialUser/$1');
+    $routes->get('remove-special-user/(:num)', 'Admin::removeSpecialUser/$1');
 
     // Lucky Draw admin routes (consolidated)
     $routes->get('draws', 'LuckyDraw::adminDraws');

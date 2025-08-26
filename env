@@ -115,3 +115,27 @@ EASYPAISA_CANCEL_URL = http://lucky-draw-system.com/wallet/easypaisa/cancel
 
 # Payment Demo Mode
 PAYMENT_DEMO_MODE = false
+
+#--------------------------------------------------------------------
+# PAYMENT METHOD CONTROL
+#--------------------------------------------------------------------
+
+# Enable/Disable Payment Methods (true/false)
+ENABLE_PAYPAL = false
+ENABLE_EASYPAISA = false
+ENABLE_JAZZ_CASH = true
+ENABLE_BANK_TRANSFER = true
+ENABLE_MANUAL_TOPUP = true
+
+# Manual Top-up Settings
+MANUAL_TOPUP_MIN_AMOUNT = 500
+MANUAL_TOPUP_MAX_AMOUNT = 50000
+MANUAL_TOPUP_APPROVAL_REQUIRED = true
+
+# User Transfer Settings
+USER_TRANSFER_ENABLED = true
+USER_TRANSFER_FEE_PERCENTAGE = 0.00
+
+# Random Wallet Display Settings
+RANDOM_WALLET_DISPLAY = true
+WALLET_DISPLAY_COUNT = 3

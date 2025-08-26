@@ -69,17 +69,9 @@
                             </div>
 
                             <!-- Product Image -->
-                            <?php if (!empty($draw['product_image'])): ?>
-                                <div class="h-40 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden relative">
-                                    <img src="<?= base_url($draw['product_image']) ?>"
-                                        alt="<?= esc($draw['product_name']) ?>"
-                                        class="w-full h-full object-contain p-3">
-                                </div>
-                            <?php else: ?>
-                                <div class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative">
-                                    <i class="fas fa-gift text-4xl text-purple-300"></i>
-                                </div>
-                            <?php endif; ?>
+                            <div class="h-40 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden relative">
+                                <?= get_product_image($draw['product_image'], 'w-full h-full object-contain p-3') ?>
+                            </div>
 
                             <!-- Product Details -->
                             <div class="p-4">
@@ -141,15 +133,9 @@
                         <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-4">
-                                    <?php if (!empty($draw['product_image'])): ?>
-                                        <img src="<?= base_url($draw['product_image']) ?>"
-                                            alt="<?= esc($draw['product_name']) ?>"
-                                            class="w-16 h-16 object-cover rounded-lg">
-                                    <?php else: ?>
-                                        <div class="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center">
-                                            <i class="fas fa-gift text-purple-600"></i>
-                                        </div>
-                                    <?php endif; ?>
+                                    <div class="w-16 h-16 rounded-lg overflow-hidden">
+                                        <?= get_product_image($draw['product_image'], 'w-16 h-16 object-cover rounded-lg') ?>
+                                    </div>
                                     <div>
                                         <h4 class="font-semibold text-gray-900"><?= esc($draw['title']) ?></h4>
                                         <p class="text-sm text-gray-600"><?= esc($draw['product_name']) ?> • Value: Rs. <?= number_format($draw['product_price'], 2) ?></p>

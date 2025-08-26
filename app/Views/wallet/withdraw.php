@@ -3,360 +3,223 @@
 <?= $this->section('content') ?>
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Page Header -->
+        <!-- Header -->
         <div class="mb-8">
-            <div class="flex items-center mb-4">
-                <a href="<?= base_url('wallet') ?>" class="text-blue-600 hover:text-blue-700 mr-4">
-                    <i class="fas fa-arrow-left text-lg"></i>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Withdraw Money</h1>
+                    <p class="text-gray-600 mt-2">
+                        <?php if ($user['is_special_user'] ?? false): ?>
+                            Request a withdrawal from your wallet (Special User Priority)
+                        <?php else: ?>
+                            Request a withdrawal from your wallet (Admin Approval Required)
+                        <?php endif; ?>
+                    </p>
+                </div>
+                <a href="<?= base_url('wallet') ?>" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Wallet
                 </a>
-                <h1 class="text-3xl font-bold text-gray-900">Withdraw Funds</h1>
             </div>
-            <p class="text-gray-600">Request a withdrawal from your wallet to your preferred payment method</p>
         </div>
 
-        <!-- Withdrawal Form -->
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100">
-            <div class="px-8 py-6 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-900">Withdrawal Request</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Withdrawal Form -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Withdrawal Request</h2>
+                    
+                    <?php if (session()->getFlashdata('success')): ?>
+                        <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
+                            <?= session()->getFlashdata('success') ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (session()->getFlashdata('error')): ?>
+                        <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
+                            <?= session()->getFlashdata('error') ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form action="<?= base_url('wallet/withdraw') ?>" method="POST" class="space-y-6">
+                        <!-- Amount -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Withdrawal Amount (Rs.)</label>
+                            <input type="number" 
+                                   name="amount" 
+                                   min="1000" 
+                                   step="100"
+                                   value="<?= old('amount') ?>"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                   placeholder="Enter amount (min: Rs. 1,000)"
+                                   required>
+                            <p class="text-sm text-gray-500 mt-1">Minimum withdrawal amount: Rs. 1,000</p>
+                        </div>
+
+                        <!-- Withdrawal Method -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Withdrawal Method</label>
+                            <select name="withdraw_method" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                    required>
+                                <option value="">Select withdrawal method</option>
+                                <option value="easypaisa" <?= old('withdraw_method') === 'easypaisa' ? 'selected' : '' ?>>EasyPaisa</option>
+                                <option value="jazz_cash" <?= old('withdraw_method') === 'jazz_cash' ? 'selected' : '' ?>>Jazz Cash</option>
+                                <option value="bank" <?= old('withdraw_method') === 'bank' ? 'selected' : '' ?>>Bank Transfer</option>
+                                <option value="hbl" <?= old('withdraw_method') === 'hbl' ? 'selected' : '' ?>>HBL Bank</option>
+                                <option value="ubank" <?= old('withdraw_method') === 'ubank' ? 'selected' : '' ?>>UBank</option>
+                                <option value="mcb" <?= old('withdraw_method') === 'mcb' ? 'selected' : '' ?>>MCB Bank</option>
+                                <option value="abank" <?= old('withdraw_method') === 'abank' ? 'selected' : '' ?>>ABank</option>
+                                <option value="nbp" <?= old('withdraw_method') === 'nbp' ? 'selected' : '' ?>>NBP</option>
+                                <option value="sbank" <?= old('withdraw_method') === 'sbank' ? 'selected' : '' ?>>Sindh Bank</option>
+                                <option value="citi" <?= old('withdraw_method') === 'citi' ? 'selected' : '' ?>>Citibank</option>
+                                <option value="hsbc" <?= old('withdraw_method') === 'hsbc' ? 'selected' : '' ?>>HSBC</option>
+                                <option value="payoneer" <?= old('withdraw_method') === 'payoneer' ? 'selected' : '' ?>>Payoneer</option>
+                                <option value="skrill" <?= old('withdraw_method') === 'skrill' ? 'selected' : '' ?>>Skrill</option>
+                                <option value="neteller" <?= old('withdraw_method') === 'neteller' ? 'selected' : '' ?>>Neteller</option>
+                                <option value="other" <?= old('withdraw_method') === 'other' ? 'selected' : '' ?>>Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Account Details -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Account Details</label>
+                            <textarea name="account_details" 
+                                      rows="3"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                      placeholder="Enter your account number, phone number, or other payment details"
+                                      required><?= old('account_details') ?></textarea>
+                            <p class="text-sm text-gray-500 mt-1">Provide the account details where you want to receive the money</p>
+                        </div>
+
+                        <!-- Notes -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes (Optional)</label>
+                            <textarea name="notes" 
+                                      rows="2"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                      placeholder="Any additional information for the admin"><?= old('notes') ?></textarea>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="pt-4">
+                            <button type="submit" 
+                                    class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                <?php if ($user['is_special_user'] ?? false): ?>
+                                    Submit Withdrawal Request
+                                <?php else: ?>
+                                    Request Withdrawal
+                                <?php endif; ?>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            <form action="<?= base_url('wallet/withdraw') ?>" method="post" class="p-8 space-y-8">
-                <?= csrf_field() ?>
+            <!-- Right Sidebar -->
+            <div class="space-y-6">
+                <!-- Wallet Balance -->
+                <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Wallet Balance</h3>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-2">
+                            Rs. <?= number_format($wallet['balance'] ?? 0, 2) ?>
+                        </div>
+                        <p class="text-sm text-gray-600">Available for withdrawal</p>
+                    </div>
+                </div>
 
-                <!-- Current Balance -->
+                <!-- Special User Status -->
+                <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl shadow-md p-6 text-white">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-star text-xl mr-3"></i>
+                        <span class="font-semibold">Special User Status</span>
+                    </div>
+                    <p class="text-yellow-100 text-sm">You have access to withdrawal and user request management features.</p>
+                </div>
+
+                <!-- Withdrawal Info -->
                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-lg font-semibold text-blue-900">Available Balance</h3>
-                            <p class="text-3xl font-bold text-blue-600">Rs. <?= number_format($wallet['balance'], 2) ?></p>
+                    <h3 class="text-lg font-semibold text-blue-900 mb-3">Withdrawal Information</h3>
+                    <div class="space-y-3 text-sm text-blue-800">
+                        <div class="flex items-center">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span>Processing time: 24-48 hours</span>
                         </div>
-                        <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-wallet text-blue-600 text-2xl"></i>
+                        <div class="flex items-center">
+                            <i class="fas fa-shield-alt mr-2"></i>
+                            <span>Admin approval required</span>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Amount Selection -->
-                <div class="space-y-4">
-                    <label class="block text-lg font-semibold text-gray-900">Withdrawal Amount</label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <label class="relative">
-                            <input type="radio" name="amount" value="10" class="sr-only peer" required>
-                            <div class="p-4 border-2 border-gray-200 rounded-xl text-center cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-all">
-                                <span class="text-2xl font-bold text-gray-900">Rs. 10</span>
-                                <p class="text-sm text-gray-600 mt-1">Minimum</p>
-                            </div>
-                        </label>
-
-                        <label class="relative">
-                            <input type="radio" name="amount" value="25" class="sr-only peer" required>
-                            <div class="p-4 border-2 border-gray-200 rounded-xl text-center cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-all">
-                                <span class="text-2xl font-bold text-gray-900">Rs. 25</span>
-                                <p class="text-sm text-gray-600 mt-1">Popular</p>
-                            </div>
-                        </label>
-
-                        <label class="relative">
-                            <input type="radio" name="amount" value="50" class="sr-only peer" required>
-                            <div class="p-4 border-2 border-gray-200 rounded-xl text-center cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-all">
-                                <span class="text-2xl font-bold text-gray-900">Rs. 50</span>
-                                <p class="text-sm text-gray-600 mt-1">Value</p>
-                            </div>
-                        </label>
-
-                        <label class="relative">
-                            <input type="radio" name="amount" value="100" class="sr-only peer" required>
-                            <div class="p-4 border-2 border-gray-200 rounded-xl text-center cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-all">
-                                <span class="text-2xl font-bold text-gray-900">Rs. 100</span>
-                                <p class="text-sm text-gray-600 mt-1">Premium</p>
-                            </div>
-                        </label>
-                    </div>
-
-                    <!-- Custom Amount -->
-                    <div class="mt-6">
-                        <label for="custom_amount" class="block text-sm font-medium text-gray-700 mb-2">Or enter custom amount</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <span class="text-gray-500 text-lg font-medium">Rs.</span>
-                            </div>
-                            <input type="number" name="custom_amount" id="custom_amount" min="10" max="<?= $wallet['balance'] ?>" step="0.01"
-                                class="pl-12 w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg"
-                                placeholder="0.00">
-                        </div>
-                        <p class="mt-2 text-sm text-gray-500">Minimum: Rs. 10.00 | Maximum: Rs. <?= number_format($wallet['balance'], 2) ?></p>
-                    </div>
-                </div>
-
-                <!-- Withdrawal Method Selection -->
-                <div class="space-y-4">
-                    <label class="block text-lg font-semibold text-gray-900">Withdrawal Method</label>
-
-                    <!-- PayPal Option -->
-                    <label class="relative">
-                        <input type="radio" name="withdrawal_method" value="paypal" class="sr-only peer" required>
-                        <div class="p-6 border-2 border-gray-200 rounded-xl cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-all">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center">
-                                    <i class="fab fa-paypal text-blue-600 text-2xl"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <h3 class="text-lg font-semibold text-gray-900">PayPal</h3>
-                                    <p class="text-gray-600">Withdraw to your PayPal account (International)</p>
-                                    <div class="flex items-center mt-2 space-x-4 text-sm text-gray-500">
-                                        <span><i class="fas fa-globe mr-1"></i>International</span>
-                                        <span><i class="fas fa-bolt mr-1"></i>Instant</span>
-                                        <span><i class="fas fa-shield-alt mr-1"></i>Secure</span>
-                                    </div>
-                                </div>
-                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 flex items-center justify-center">
-                                    <div class="w-3 h-3 bg-white rounded-full peer-checked:block hidden"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </label>
-
-                    <!-- Easypaisa Option -->
-                    <label class="relative">
-                        <input type="radio" name="withdrawal_method" value="easypaisa" class="sr-only peer" required>
-                        <div class="p-6 border-2 border-gray-200 rounded-xl cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 transition-all">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center">
-                                    <i class="fas fa-mobile-alt text-green-600 text-2xl"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <h3 class="text-lg font-semibold text-gray-900">Easypaisa</h3>
-                                    <p class="text-gray-600">Withdraw to your Easypaisa mobile wallet (Pakistan)</p>
-                                    <div class="flex items-center mt-2 space-x-4 text-sm text-gray-500">
-                                        <span><i class="fas fa-mobile-alt mr-1"></i>Mobile</span>
-                                        <span><i class="fas fa-bolt mr-1"></i>Instant</span>
-                                        <span><i class="fas fa-map-marker-alt mr-1"></i>Pakistan</span>
-                                    </div>
-                                </div>
-                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 flex items-center justify-center">
-                                    <div class="w-3 h-3 bg-white rounded-full peer-checked:block hidden"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- Account Details -->
-                <div class="space-y-4">
-                    <label class="block text-lg font-semibold text-gray-900">Account Details</label>
-                    <div class="bg-gray-50 rounded-xl p-6">
-                        <div class="space-y-4">
-                            <div>
-                                <label for="account_details" class="block text-sm font-medium text-gray-700 mb-2">PayPal Email / Easypaisa Number</label>
-                                <input type="text" name="account_details" id="account_details" required
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg"
-                                    placeholder="Enter your PayPal email or Easypaisa mobile number">
-                                <p class="mt-2 text-sm text-gray-500">For PayPal: your email address | For Easypaisa: your mobile number</p>
-                            </div>
-
-                            <div>
-                                <label for="full_name" class="block text-sm font-medium text-gray-700 mb-2">Full Name (as registered)</label>
-                                <input type="text" name="full_name" id="full_name" required
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg"
-                                    placeholder="Enter your full name as registered with the payment method">
-                            </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <span>Minimum amount: Rs. 1,000</span>
                         </div>
                     </div>
                 </div>
-
-                <!-- Terms and Processing Time -->
-                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-                    <div class="flex items-start space-x-3">
-                        <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <i class="fas fa-info-circle text-yellow-600 text-sm"></i>
-                        </div>
-                        <div class="text-sm text-yellow-800">
-                            <h4 class="font-semibold mb-2">Important Information</h4>
-                            <ul class="space-y-1">
-                                <li>• Minimum withdrawal amount: Rs. 10.00</li>
-                                <li>• Processing time: 24-48 hours (business days)</li>
-                                <li>• Withdrawal requests are reviewed by admin for security</li>
-                                <li>• Ensure account details match your payment method registration</li>
-                                <li>• Processing fees may apply depending on the withdrawal method</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Submit Button -->
-                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                    <a href="<?= base_url('wallet') ?>" class="px-8 py-4 border-2 border-gray-300 text-lg font-semibold rounded-xl text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
-                        Cancel
-                    </a>
-                    <button type="submit" class="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
-                        <i class="fas fa-arrow-down mr-3"></i>
-                        Submit Withdrawal Request
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
 
         <!-- Recent Withdrawals -->
-        <div class="mt-8 bg-white rounded-2xl shadow-lg border border-gray-100">
-            <div class="px-8 py-6 border-b border-gray-200">
-                <h3 class="text-xl font-semibold text-gray-900">Recent Withdrawal Requests</h3>
-            </div>
-
-            <div class="p-8">
-                <?php if (empty($withdrawal_history)): ?>
-                    <div class="text-center py-8">
-                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <i class="fas fa-history text-2xl text-gray-400"></i>
-                        </div>
-                        <p class="text-gray-500">No withdrawal requests yet</p>
-                        <p class="text-gray-400 mt-2">Your withdrawal history will appear here</p>
-                    </div>
-                <?php else: ?>
-                    <div class="space-y-4">
-                        <?php foreach ($withdrawal_history as $withdrawal): ?>
-                            <div class="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-12 h-12 <?= $withdrawal['status'] === 'completed' ? 'bg-green-100' : ($withdrawal['status'] === 'pending' ? 'bg-yellow-100' : 'bg-red-100') ?> rounded-xl flex items-center justify-center">
-                                            <i class="fas <?= $withdrawal['status'] === 'completed' ? 'fa-check text-green-600' : ($withdrawal['status'] === 'pending' ? 'fa-clock text-yellow-600' : 'fa-times text-red-600') ?> text-lg"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="text-lg font-semibold text-gray-900">Rs. <?= number_format(abs($withdrawal['amount']), 2) ?></h4>
-                                            <p class="text-sm text-gray-600"><?= ucfirst($withdrawal['payment_method']) ?> Withdrawal</p>
-                                            <p class="text-xs text-gray-500"><?= date('M d, Y \a\t H:i', strtotime($withdrawal['created_at'])) ?></p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <?= $withdrawal['status'] === 'completed' ? 'bg-green-100 text-green-800' : ($withdrawal['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') ?>">
-                                            <?= ucfirst($withdrawal['status']) ?>
-                                        </span>
-                                        <?php if ($withdrawal['status'] === 'pending'): ?>
-                                            <p class="text-xs text-gray-500 mt-1">Processing...</p>
-                                        <?php elseif ($withdrawal['status'] === 'completed'): ?>
-                                            <p class="text-xs text-green-600 mt-1">Sent successfully</p>
-                                        <?php elseif ($withdrawal['status'] === 'failed'): ?>
-                                            <p class="text-xs text-red-600 mt-1">Rejected</p>
-                                            <?php if (strpos($withdrawal['payment_reference'], 'Rejected:') === 0): ?>
-                                                <p class="text-xs text-gray-500 mt-1"><?= esc(substr($withdrawal['payment_reference'], 10)) ?></p>
-                                            <?php endif; ?>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-
-                                <?php if ($withdrawal['metadata']): ?>
-                                    <?php $metadata = json_decode($withdrawal['metadata'], true); ?>
-                                    <?php if (isset($metadata['account_details'])): ?>
-                                        <div class="mt-4 pt-4 border-t border-gray-200">
-                                            <div class="flex items-center justify-between text-sm">
-                                                <span class="text-gray-600">Account:</span>
-                                                <span class="text-gray-900 font-medium"><?= esc($metadata['account_details']) ?></span>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <div class="mt-6 text-center">
-                        <a href="<?= base_url('wallet/transactions') ?>" class="text-blue-600 hover:text-blue-700 font-medium">
-                            View All Transactions <i class="fas fa-arrow-right ml-1"></i>
-                        </a>
-                    </div>
-                <?php endif; ?>
+        <?php if (!empty($recentWithdrawals)): ?>
+        <div class="mt-8">
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Withdrawal Requests</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php foreach ($recentWithdrawals as $withdrawal): ?>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <?= date('M d, Y H:i', strtotime($withdrawal['created_at'])) ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    Rs. <?= number_format(abs($withdrawal['amount']), 2) ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <?= ucfirst(str_replace('_', ' ', $withdrawal['payment_method'])) ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php
+                                    $statusClass = '';
+                                    $statusText = '';
+                                    switch ($withdrawal['status']) {
+                                        case 'pending':
+                                            $statusClass = 'bg-yellow-100 text-yellow-800';
+                                            $statusText = 'Pending';
+                                            break;
+                                        case 'approved':
+                                            $statusClass = 'bg-green-100 text-green-800';
+                                            $statusText = 'Approved';
+                                            break;
+                                        case 'rejected':
+                                            $statusClass = 'bg-red-100 text-red-800';
+                                            $statusText = 'Rejected';
+                                            break;
+                                        default:
+                                            $statusClass = 'bg-gray-100 text-gray-800';
+                                            $statusText = ucfirst($withdrawal['status']);
+                                    }
+                                    ?>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $statusClass ?>">
+                                        <?= $statusText ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const amountInputs = document.querySelectorAll('input[name="amount"]');
-        const customAmountInput = document.getElementById('custom_amount');
-        const withdrawalMethodInputs = document.querySelectorAll('input[name="withdrawal_method"]');
-        const accountDetailsInput = document.getElementById('account_details');
-
-        // Handle amount selection
-        amountInputs.forEach(input => {
-            input.addEventListener('change', function() {
-                if (this.checked) {
-                    customAmountInput.value = '';
-                }
-            });
-        });
-
-        // Handle custom amount input
-        customAmountInput.addEventListener('input', function() {
-            if (this.value) {
-                amountInputs.forEach(input => input.checked = false);
-            }
-        });
-
-        // Handle withdrawal method selection
-        withdrawalMethodInputs.forEach(input => {
-            input.addEventListener('change', function() {
-                if (this.checked) {
-                    updateAccountDetailsPlaceholder(this.value);
-                }
-            });
-        });
-
-        function updateAccountDetailsPlaceholder(method) {
-            if (method === 'paypal') {
-                accountDetailsInput.placeholder = 'Enter your PayPal email address';
-            } else if (method === 'easypaisa') {
-                accountDetailsInput.placeholder = 'Enter your Easypaisa mobile number';
-            }
-        }
-
-        // Form validation
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function(e) {
-            const selectedAmount = document.querySelector('input[name="amount"]:checked');
-            const customAmount = customAmountInput.value;
-            const withdrawalMethod = document.querySelector('input[name="withdrawal_method"]:checked');
-            const accountDetails = accountDetailsInput.value;
-            const fullName = document.getElementById('full_name').value;
-
-            if (!selectedAmount && !customAmount) {
-                e.preventDefault();
-                alert('Please select an amount or enter a custom amount');
-                return false;
-            }
-
-            if (!withdrawalMethod) {
-                e.preventDefault();
-                alert('Please select a withdrawal method');
-                return false;
-            }
-
-            if (!accountDetails) {
-                e.preventDefault();
-                alert('Please enter your account details');
-                return false;
-            }
-
-            if (!fullName) {
-                e.preventDefault();
-                alert('Please enter your full name');
-                return false;
-            }
-
-            const amount = customAmount || selectedAmount.value;
-            if (parseFloat(amount) < 10) {
-                e.preventDefault();
-                alert('Minimum withdrawal amount is Rs. 10.00');
-                return false;
-            }
-
-            if (parseFloat(amount) > <?= $wallet['balance'] ?>) {
-                e.preventDefault();
-                alert('Withdrawal amount cannot exceed your available balance');
-                return false;
-            }
-
-            return true;
-        });
-    });
-</script>
 <?= $this->endSection() ?>

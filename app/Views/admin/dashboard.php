@@ -95,6 +95,107 @@
                 </div>
             </div>
         </div>
+
+        <!-- Referral Stats Card -->
+        <div class="bg-gradient-to-r from-purple-600 to-indigo-700 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Referral Program</h3>
+                    <div class="text-3xl font-bold"><?= $referral_stats['total_referrals'] ?></div>
+                    <p class="text-purple-100 text-sm">Total Referrals</p>
+                </div>
+                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                    <i class="fas fa-users text-3xl"></i>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <div class="text-purple-100">Active</div>
+                    <div class="font-semibold"><?= $referral_stats['active_referrals'] ?></div>
+                </div>
+                <div>
+                    <div class="text-purple-100">Bonuses Paid</div>
+                    <div class="font-semibold">Rs. <?= number_format($referral_stats['total_bonus_paid'], 2) ?></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallet Top-up Stats Card -->
+        <div class="bg-gradient-to-r from-green-600 to-emerald-700 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-semibold">Wallet Top-ups</h3>
+                    <p class="text-green-100">Manage user top-up requests</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-wallet text-2xl"></i>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <div class="text-green-100">Pending</div>
+                    <div class="font-semibold"><?= $topup_stats['pending'] ?></div>
+                </div>
+                <div>
+                    <div class="text-green-100">Total</div>
+                    <div class="font-semibold"><?= $topup_stats['total'] ?></div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="<?= base_url('admin/topup-requests') ?>" class="text-green-100 hover:text-white text-sm font-medium">View All →</a>
+                <a href="<?= base_url('admin/special-users') ?>" class="text-green-100 hover:text-white text-sm font-medium ml-4">Special Users →</a>
+            </div>
+        </div>
+
+        <!-- Application Settings Card -->
+        <div class="bg-gradient-to-r from-purple-600 to-indigo-700 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-semibold">Application Settings</h3>
+                    <p class="text-purple-100">Configure website and system settings</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-cog text-2xl"></i>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <div class="text-purple-100">Website</div>
+                    <div class="font-semibold">Configure</div>
+                </div>
+                <div>
+                    <div class="text-purple-100">Payment</div>
+                    <div class="font-semibold">Methods</div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="<?= base_url('admin/application-settings') ?>" class="text-purple-100 hover:text-white text-sm font-medium">Manage Settings →</a>
+            </div>
+        </div>
+
+        <!-- User Transfers Stats Card -->
+        <div class="bg-gradient-to-r from-orange-600 to-red-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">User Transfers</h3>
+                    <div class="text-3xl font-bold"><?= $transfer_stats['pending_transfers'] ?></div>
+                    <p class="text-orange-100 text-sm">Pending Transfers</p>
+                </div>
+                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                    <i class="fas fa-exchange-alt text-3xl"></i>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <div class="text-orange-100">Total Amount</div>
+                    <div class="font-semibold">Rs. <?= number_format($transfer_stats['total_amount_transferred'], 2) ?></div>
+                </div>
+                <div>
+                    <div class="text-orange-100">Completed</div>
+                    <div class="font-semibold"><?= $transfer_stats['completed_transfers'] ?></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Monthly Overview -->
@@ -329,6 +430,69 @@
                     <span class="text-gray-600">Response Time</span>
                     <span class="text-blue-600"><?= $system_health['response_time'] ?>ms</span>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- User Management -->
+        <div class="glass-card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">User Management</h3>
+                <i class="fas fa-users text-blue-500"></i>
+            </div>
+            <p class="text-gray-600 mb-4">Manage users, special users, and admin accounts</p>
+            <div class="space-y-2">
+                <a href="<?= base_url('admin/users') ?>" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-users mr-2"></i>All Users
+                </a>
+                <a href="<?= base_url('admin/special-users') ?>" class="block w-full text-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-star mr-2"></i>Special Users
+                </a>
+                <a href="<?= base_url('admin/admins') ?>" class="block w-full text-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-user-shield mr-2"></i>Admin Users
+                </a>
+            </div>
+        </div>
+
+        <!-- Finance Management -->
+        <div class="glass-card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Finance Management</h3>
+                <i class="fas fa-wallet text-green-500"></i>
+            </div>
+            <p class="text-gray-600 mb-4">Handle top-ups, withdrawals, and user transfers</p>
+            <div class="space-y-2">
+                <a href="<?= base_url('admin/topup-requests') ?>" class="block w-full text-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-wallet mr-2"></i>Top-up Requests
+                </a>
+                <a href="<?= base_url('admin/withdraw-requests') ?>" class="block w-full text-center bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-money-bill-wave mr-2"></i>Withdrawal Requests
+                </a>
+                <a href="<?= base_url('admin/user-transfers') ?>" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-exchange-alt mr-2"></i>User Transfers
+                </a>
+            </div>
+        </div>
+
+        <!-- System Management -->
+        <div class="glass-card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">System Management</h3>
+                <i class="fas fa-cog text-purple-500"></i>
+            </div>
+            <p class="text-gray-600 mb-4">Configure system settings and manage notifications</p>
+            <div class="space-y-2">
+                <a href="<?= base_url('admin/application-settings') ?>" class="block w-full text-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-cog mr-2"></i>Application Settings
+                </a>
+                <a href="<?= base_url('admin/notifications') ?>" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-bell mr-2"></i>Notifications
+                </a>
+                <a href="<?= base_url('admin/profile') ?>" class="block w-full text-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-user-circle mr-2"></i>My Profile
+                </a>
             </div>
         </div>
     </div>

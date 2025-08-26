@@ -9,6 +9,10 @@ use App\Models\WinnerModel;
 use App\Models\WalletModel;
 use App\Models\WalletTransactionModel;
 use App\Models\EntryModel;
+use App\Models\ReferralModel;
+use App\Models\WalletTopupRequestModel;
+use App\Models\UserTransferModel;
+use App\Models\SettingModel;
 use App\Libraries\NotificationService;
 use App\Libraries\CurrencyService;
 
@@ -21,6 +25,10 @@ class Admin extends BaseController
     protected $walletModel;
     protected $walletTransactionModel;
     protected $entryModel;
+    protected $referralModel;
+    protected $walletTopupRequestModel;
+    protected $userTransferModel;
+    protected $settingModel;
     protected $notificationService;
     protected $currencyService;
     protected $db;
@@ -34,6 +42,10 @@ class Admin extends BaseController
         $this->walletModel = new WalletModel();
         $this->walletTransactionModel = new WalletTransactionModel();
         $this->entryModel = new EntryModel();
+        $this->referralModel = new ReferralModel();
+        $this->walletTopupRequestModel = new WalletTopupRequestModel();
+        $this->userTransferModel = new UserTransferModel();
+        $this->settingModel = new SettingModel();
         $this->notificationService = new NotificationService();
         $this->currencyService = new CurrencyService();
         $this->db = \Config\Database::connect();
@@ -43,6 +55,10 @@ class Admin extends BaseController
     {
         // Get comprehensive dashboard statistics
         $data = $this->getDashboardData();
+
+        // Add referral statistics to dashboard
+        $data['referral_stats'] = $this->referralModel->getAdminReferralStats();
+
         return view('admin/dashboard', $data);
     }
 
@@ -67,7 +83,7 @@ class Admin extends BaseController
         // Transaction statistics
         $transactionStats = $this->getTransactionStatistics();
 
-        // Recent data
+        // Get recent data
         $recentTransactions = $this->getRecentTransactions(5);
         $recentUsers = $this->userModel->where('is_admin', false)->orderBy('created_at', 'DESC')->limit(5)->findAll();
         $lowStockProducts = $this->getLowStockProducts();
@@ -79,6 +95,10 @@ class Admin extends BaseController
         $userGrowth = $this->calculateUserGrowth();
         $drawGrowth = $this->calculateDrawGrowth();
         $transactionGrowth = $this->calculateTransactionGrowth();
+
+        // Wallet and top-up statistics
+        $topupStats = $this->walletTopupRequestModel->getTopupStats();
+        $transferStats = $this->userTransferModel->getTransferStats();
 
         return [
             // Main statistics
@@ -92,15 +112,10 @@ class Admin extends BaseController
             'pending_claims' => $pendingClaims,
             'total_transactions' => $totalTransactions,
 
-            // Revenue data
+            // Financial data
             'total_revenue' => $totalRevenue,
             'monthly_revenue' => $monthlyRevenue,
             'revenue_growth' => $revenueGrowth,
-
-            // Growth percentages
-            'user_growth' => $userGrowth,
-            'draw_growth' => $drawGrowth,
-            'transaction_growth' => $transactionGrowth,
 
             // Transaction statistics
             'transaction_stats' => $transactionStats,
@@ -110,8 +125,17 @@ class Admin extends BaseController
             'recent_users' => $recentUsers,
             'low_stock_products' => $lowStockProducts,
 
-            // System metrics
-            'system_health' => $systemHealth
+            // System health
+            'system_health' => $systemHealth,
+
+            // Growth metrics
+            'user_growth' => $userGrowth,
+            'draw_growth' => $drawGrowth,
+            'transaction_growth' => $transactionGrowth,
+
+            // Wallet statistics
+            'topup_stats' => $topupStats,
+            'transfer_stats' => $transferStats
         ];
     }
 
@@ -626,10 +650,23 @@ class Admin extends BaseController
             $data = [
                 'title' => $this->request->getPost('title'),
                 'description' => $this->request->getPost('description'),
+                'product_name' => $this->request->getPost('product_name'),
+                'product_price' => $this->request->getPost('product_price'),
                 'entry_fee' => $this->request->getPost('entry_fee'),
                 'draw_date' => $this->request->getPost('draw_date'),
                 'status' => $this->request->getPost('status')
             ];
+
+            // Handle product image upload
+            $image = $this->request->getFile('product_image');
+            if ($image && $image->isValid() && !$image->hasMoved()) {
+                $newName = $image->getRandomName();
+                if (!is_dir(ROOTPATH . 'public/uploads/products')) {
+                    mkdir(ROOTPATH . 'public/uploads/products', 0755, true);
+                }
+                $image->move(ROOTPATH . 'public/uploads/products', $newName);
+                $data['product_image'] = 'uploads/products/' . $newName;
+            }
 
             if ($this->productDrawModel->update($id, $data)) {
                 return redirect()->to(base_url('admin/product-draws'))->with('success', 'Product lucky draw updated successfully');
@@ -2296,13 +2333,13 @@ class Admin extends BaseController
         try {
             // Get pending claims
             $pendingClaims = $this->winnerModel->getPendingClaims();
-            
+
             // Get approved claims
             $approvedClaims = $this->winnerModel->getApprovedClaims();
-            
+
             // Get all winners for overview
             $allWinners = $this->winnerModel->getAllWinnersForAdmin();
-            
+
             // Calculate total pending value
             $totalPendingValue = 0;
             foreach ($pendingClaims as $claim) {
@@ -2317,10 +2354,558 @@ class Admin extends BaseController
             ];
 
             return view('admin/approve_claims', $data);
-
         } catch (\Exception $e) {
             log_message('error', 'Error loading approve claims page: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error loading claims data: ' . $e->getMessage());
         }
+    }
+
+    // Referral Management
+    public function referrals()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $perPage = 20;
+
+        $data['referrals'] = $this->referralModel->getAllReferrals($perPage, ($page - 1) * $perPage);
+        $data['pager'] = $this->referralModel->pager;
+        $data['stats'] = $this->referralModel->getAdminReferralStats();
+
+        return view('admin/referrals', $data);
+    }
+
+    public function referralSettings()
+    {
+        if ($this->request->getMethod() === 'POST') {
+            $data = [
+                'referral_bonus_amount' => $this->request->getPost('referral_bonus_amount'),
+                'referral_bonus_conditions' => $this->request->getPost('referral_bonus_conditions'),
+                'referral_code_length' => $this->request->getPost('referral_code_length'),
+                'max_referrals_per_user' => $this->request->getPost('max_referrals_per_user')
+            ];
+
+            foreach ($data as $key => $value) {
+                $this->settingModel->setSetting($key, $value);
+            }
+
+            return redirect()->back()->with('success', 'Referral settings updated successfully');
+        }
+
+        $data['settings'] = [
+            'referral_bonus_amount' => $this->settingModel->getReferralBonusAmount(),
+            'referral_bonus_conditions' => $this->settingModel->getReferralBonusConditions(),
+            'referral_code_length' => $this->settingModel->getReferralCodeLength(),
+            'max_referrals_per_user' => $this->settingModel->getMaxReferralsPerUser()
+        ];
+
+        return view('admin/referral_settings', $data);
+    }
+
+    public function approveReferralBonus($referralId)
+    {
+        $referral = $this->referralModel->find($referralId);
+        if (!$referral) {
+            return redirect()->back()->with('error', 'Referral not found');
+        }
+
+        if ($this->referralModel->approveReferralBonus($referralId, session()->get('user_id'))) {
+            return redirect()->back()->with('success', 'Referral bonus approved and paid successfully');
+        } else {
+            return redirect()->back()->with('error', 'Failed to approve referral bonus');
+        }
+    }
+
+    // Wallet Top-up Management
+    public function topupRequests()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $perPage = 20;
+
+        $data['requests'] = $this->walletTopupRequestModel->getPendingRequests($perPage);
+        $data['stats'] = $this->walletTopupRequestModel->getTopupStats();
+
+        return view('admin/topup_requests', $data);
+    }
+
+    public function approveTopupRequest($requestId)
+    {
+        if ($this->request->getMethod() === 'POST') {
+            $notes = $this->request->getPost('admin_notes');
+
+            if ($this->walletTopupRequestModel->approveRequest($requestId, session()->get('user_id'), $notes)) {
+                return redirect()->back()->with('success', 'Top-up request approved successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to approve top-up request');
+            }
+        }
+
+        $data['request'] = $this->walletTopupRequestModel->getRequestWithUser($requestId);
+        return view('admin/approve_topup_request', $data);
+    }
+
+    public function rejectTopupRequest($requestId)
+    {
+        if ($this->request->getMethod() === 'POST') {
+            $notes = $this->request->getPost('admin_notes');
+
+            if ($this->walletTopupRequestModel->rejectRequest($requestId, session()->get('user_id'), $notes)) {
+                return redirect()->back()->with('success', 'Top-up request rejected successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to reject top-up request');
+            }
+        }
+
+        $data['request'] = $this->walletTopupRequestModel->getRequestWithUser($requestId);
+        return view('admin/reject_topup_request', $data);
+    }
+
+    // User Transfer Management
+    public function userTransfers()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $perPage = 20;
+
+        $data['transfers'] = $this->userTransferModel->getPendingTransfers($perPage);
+        $data['stats'] = $this->userTransferModel->getTransferStats();
+
+        return view('admin/user_transfers', $data);
+    }
+
+    public function processUserTransfer($transferId)
+    {
+        if ($this->request->getMethod() === 'POST') {
+            $notes = $this->request->getPost('admin_notes');
+
+            if ($this->userTransferModel->processTransfer($transferId, session()->get('user_id'), $notes)) {
+                return redirect()->back()->with('success', 'Transfer processed successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to process transfer');
+            }
+        }
+
+        $data['transfer'] = $this->userTransferModel->getTransferWithUsers($transferId);
+        return view('admin/process_user_transfer', $data);
+    }
+
+    public function rejectUserTransfer($transferId)
+    {
+        if ($this->request->getMethod() === 'POST') {
+            $notes = $this->request->getPost('admin_notes');
+
+            if ($this->userTransferModel->rejectTransfer($transferId, session()->get('user_id'), $notes)) {
+                return redirect()->back()->with('success', 'Transfer rejected successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to reject transfer');
+            }
+        }
+
+        $data['transfer'] = $this->userTransferModel->getTransferWithUsers($transferId);
+        return view('admin/reject_user_transfer', $data);
+    }
+
+    // Payment Method Settings
+    public function paymentSettings()
+    {
+        if ($this->request->getMethod() === 'POST') {
+            $data = [
+                'paypal_enabled' => $this->request->getPost('paypal_enabled') == '1',
+                'easypaisa_enabled' => $this->request->getPost('easypaisa_enabled') == '1',
+                'jazz_cash_enabled' => $this->request->getPost('jazz_cash_enabled') == '1',
+                'bank_transfer_enabled' => $this->request->getPost('bank_transfer_enabled') == '1',
+                'manual_topup_enabled' => $this->request->getPost('manual_topup_enabled') == '1',
+                'min_topup_amount' => $this->request->getPost('min_topup_amount'),
+                'max_topup_amount' => $this->request->getPost('max_topup_amount'),
+                'topup_approval_required' => $this->request->getPost('topup_approval_required') == '1',
+                'user_transfer_enabled' => $this->request->getPost('user_transfer_enabled') == '1',
+                'transfer_fee_percentage' => $this->request->getPost('transfer_fee_percentage'),
+                'random_wallet_display' => $this->request->getPost('random_wallet_display') == '1',
+                'wallet_display_count' => $this->request->getPost('wallet_display_count')
+            ];
+
+            foreach ($data as $key => $value) {
+                $this->settingModel->setSetting($key, $value);
+            }
+
+            return redirect()->back()->with('success', 'Payment settings updated successfully');
+        }
+
+        $data['settings'] = [
+            'paypal_enabled' => $this->settingModel->getPayPalEnabled(),
+            'easypaisa_enabled' => $this->settingModel->getEasypaisaEnabled(),
+            'jazz_cash_enabled' => $this->settingModel->getJazzCashEnabled(),
+            'bank_transfer_enabled' => $this->settingModel->getBankTransferEnabled(),
+            'manual_topup_enabled' => $this->settingModel->getManualTopupEnabled(),
+            'min_topup_amount' => $this->settingModel->getMinTopupAmount(),
+            'max_topup_amount' => $this->settingModel->getMaxTopupAmount(),
+            'topup_approval_required' => $this->settingModel->getTopupApprovalRequired(),
+            'user_transfer_enabled' => $this->settingModel->getUserTransferEnabled(),
+            'transfer_fee_percentage' => $this->settingModel->getTransferFeePercentage(),
+            'random_wallet_display' => $this->settingModel->getRandomWalletDisplay(),
+            'wallet_display_count' => $this->settingModel->getWalletDisplayCount()
+        ];
+
+        return view('admin/payment_settings', $data);
+    }
+
+    // User Wallet Management
+    public function userWallets()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $perPage = 20;
+
+        $data['users'] = $this->userModel->getUsersWithWalletDetailsForAdmin($perPage);
+
+        return view('admin/user_wallets', $data);
+    }
+
+    public function editUserWallet($userId)
+    {
+        if ($this->request->getMethod() === 'POST') {
+            $data = [
+                'wallet_name' => $this->request->getPost('wallet_name'),
+                'wallet_number' => $this->request->getPost('wallet_number'),
+                'wallet_type' => $this->request->getPost('wallet_type')
+            ];
+
+            if ($this->userModel->updateWalletDetails($userId, $data['wallet_name'], $data['wallet_number'], $data['wallet_type'])) {
+                return redirect()->back()->with('success', 'User wallet details updated successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to update wallet details');
+            }
+        }
+
+        $data['user'] = $this->userModel->find($userId);
+        $data['wallet'] = $this->walletModel->getUserWallet($userId);
+
+        return view('admin/edit_user_wallet', $data);
+    }
+
+    /**
+     * Manage special users (users who can display wallet information for topups)
+     */
+    public function specialUsers()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $perPage = 20;
+
+        $data['users'] = $this->userModel->getUsersWithWalletDetails($perPage, ($page - 1) * $perPage);
+        $data['pager'] = $this->userModel->pager;
+        $data['stats'] = [
+            'total_users' => $this->userModel->countAllResults(),
+            'users_with_wallets' => $this->userModel->countUsersWithWalletDetails(),
+            'active_wallets' => $this->userModel->countActiveWalletUsers()
+        ];
+
+        return view('admin/special_users', $data);
+    }
+
+    /**
+     * Edit special user wallet information
+     */
+    public function editSpecialUser($userId)
+    {
+        if ($this->request->getMethod() === 'POST') {
+            $walletName = $this->request->getPost('wallet_name');
+            $walletNumber = $this->request->getPost('wallet_number');
+            $walletType = $this->request->getPost('wallet_type');
+            $bankName = $this->request->getPost('bank_name');
+            $isActive = $this->request->getPost('is_active') ? true : false;
+
+            if ($this->userModel->updateSpecialUserWallet($userId, $walletName, $walletNumber, $walletType, $bankName, $isActive)) {
+                return redirect()->back()->with('success', 'Special user wallet information updated successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to update wallet information');
+            }
+        }
+
+        $data['user'] = $this->userModel->find($userId);
+        $data['wallet'] = $this->walletModel->getUserWallet($userId);
+
+        return view('admin/edit_special_user', $data);
+    }
+
+    /**
+     * Admin profile page
+     */
+    public function profile()
+    {
+        $adminId = session()->get('user_id');
+        $admin = $this->userModel->find($adminId);
+
+        $data = [
+            'title' => 'Admin Profile',
+            'admin' => $admin
+        ];
+
+        return view('admin/profile', $data);
+    }
+
+    /**
+     * Update admin profile
+     */
+    public function updateProfile()
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->back();
+        }
+
+        $adminId = session()->get('user_id');
+        $admin = $this->userModel->find($adminId);
+
+        $fullName = $this->request->getPost('full_name');
+        $email = $this->request->getPost('email');
+        $phone = $this->request->getPost('phone');
+
+        // Validate email uniqueness
+        $existingUser = $this->userModel->where('email', $email)->where('id !=', $adminId)->first();
+        if ($existingUser) {
+            return redirect()->back()->with('error', 'Email address is already in use by another user');
+        }
+
+        // Handle profile image upload
+        $profileImage = $this->request->getFile('profile_image');
+        $updateData = [
+            'full_name' => $fullName,
+            'email' => $email,
+            'phone' => $phone
+        ];
+
+        if ($profileImage && $profileImage->isValid() && !$profileImage->hasMoved()) {
+            $uploadPath = 'uploads/profiles/';
+
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            $newName = $profileImage->getRandomName();
+            $profileImage->move($uploadPath, $newName);
+
+            $updateData['profile_image'] = $newName;
+        }
+
+        if ($this->userModel->update($adminId, $updateData)) {
+            return redirect()->back()->with('success', 'Profile updated successfully');
+        } else {
+            return redirect()->back()->with('error', 'Failed to update profile');
+        }
+    }
+
+    /**
+     * Change admin password
+     */
+    public function changePassword()
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->back();
+        }
+
+        $adminId = session()->get('user_id');
+        $admin = $this->userModel->find($adminId);
+
+        $currentPassword = $this->request->getPost('current_password');
+        $newPassword = $this->request->getPost('new_password');
+        $confirmPassword = $this->request->getPost('confirm_password');
+
+        // Verify current password
+        if (!password_verify($currentPassword, $admin['password'])) {
+            return redirect()->back()->with('error', 'Current password is incorrect');
+        }
+
+        // Check if new passwords match
+        if ($newPassword !== $confirmPassword) {
+            return redirect()->back()->with('error', 'New passwords do not match');
+        }
+
+        // Validate new password length
+        if (strlen($newPassword) < 8) {
+            return redirect()->back()->with('error', 'New password must be at least 8 characters long');
+        }
+
+        // Update password
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        if ($this->userModel->update($adminId, ['password' => $hashedPassword])) {
+            return redirect()->back()->with('success', 'Password changed successfully');
+        } else {
+            return redirect()->back()->with('error', 'Failed to change password');
+        }
+    }
+
+    /**
+     * Application settings page
+     */
+    public function applicationSettings()
+    {
+        $settings = $this->settingModel->getAllSettings();
+
+        $data = [
+            'title' => 'Application Settings',
+            'settings' => $settings
+        ];
+
+        return view('admin/settings', $data);
+    }
+
+    /**
+     * Save application settings
+     */
+    public function saveSettings()
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->back();
+        }
+
+        try {
+            // Website Settings
+            $this->settingModel->updateSetting('website_name', $this->request->getPost('website_name'));
+            $this->settingModel->updateSetting('contact_email', $this->request->getPost('contact_email'));
+            $this->settingModel->updateSetting('contact_phone', $this->request->getPost('contact_phone'));
+
+            // Referral System Settings
+            $this->settingModel->updateSetting('referral_bonus_percentage', $this->request->getPost('referral_bonus_percentage'));
+
+            // User Transfer Settings
+            $this->settingModel->updateSetting('user_transfer_enabled', $this->request->getPost('user_transfer_enabled') ? '1' : '0');
+            $this->settingModel->updateSetting('transfer_fee_percentage', $this->request->getPost('transfer_fee_percentage'));
+            $this->settingModel->updateSetting('min_transfer_amount', $this->request->getPost('min_transfer_amount'));
+            $this->settingModel->updateSetting('max_transfer_amount', $this->request->getPost('max_transfer_amount'));
+
+            // Handle file uploads
+            $this->handleSettingsFileUploads();
+
+            return redirect()->back()->with('success', 'Settings saved successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to save settings: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to save settings: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Handle file uploads for settings
+     */
+    private function handleSettingsFileUploads()
+    {
+        $uploadPath = 'uploads/settings/';
+
+        // Create directory if it doesn't exist
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        // Handle website logo upload
+        $websiteLogo = $this->request->getFile('website_logo');
+        if ($websiteLogo && $websiteLogo->isValid() && !$websiteLogo->hasMoved()) {
+            $newName = 'logo_' . time() . '.' . $websiteLogo->getExtension();
+            $websiteLogo->move($uploadPath, $newName);
+            $this->settingModel->updateSetting('website_logo', $newName);
+        }
+
+        // Handle favicon upload
+        $favicon = $this->request->getFile('favicon');
+        if ($favicon && $favicon->isValid() && !$favicon->hasMoved()) {
+            $newName = 'favicon_' . time() . '.' . $favicon->getExtension();
+            $favicon->move($uploadPath, $newName);
+            $this->settingModel->updateSetting('favicon', $newName);
+        }
+    }
+
+    /**
+     * Make a normal user a special user
+     */
+    public function makeSpecialUser($userId)
+    {
+        $user = $this->userModel->find($userId);
+
+        if (!$user) {
+            return redirect()->back()->with('error', 'User not found');
+        }
+
+        if ($user['is_special_user']) {
+            return redirect()->back()->with('error', 'User is already a special user');
+        }
+
+        // Use direct database query to bypass field protection
+        $db = \Config\Database::connect();
+
+        // Update user to be a special user with basic wallet information
+        $updateData = [
+            'is_special_user' => 1,
+            'wallet_active' => 1,
+            'wallet_name' => $user['full_name'],
+            'wallet_number' => 'Pending',
+            'wallet_type' => 'easypaisa',
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        $db->table('users')->where('id', $userId)->update($updateData);
+
+        // Check if user already has a wallet record
+        $existingWallet = $this->walletModel->getUserWallet($userId);
+
+        if (!$existingWallet) {
+            // Create a basic wallet record
+            $this->walletModel->insert([
+                'user_id' => $userId,
+                'balance' => 0,
+                'wallet_name' => $user['full_name'],
+                'wallet_number' => 'Pending',
+                'wallet_type' => 'easypaisa',
+                'bank_name' => null,
+                'wallet_active' => 1,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+        } else {
+            // Update existing wallet to be active
+            $this->walletModel->update($existingWallet['id'], [
+                'wallet_active' => 1,
+                'wallet_name' => $user['full_name'],
+                'wallet_number' => 'Pending',
+                'wallet_type' => 'easypaisa'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'User has been made a special user successfully. They can now update their wallet details in their profile.');
+    }
+
+    /**
+     * Remove special user status from a user
+     */
+    public function removeSpecialUser($userId)
+    {
+        $user = $this->userModel->find($userId);
+
+        if (!$user) {
+            return redirect()->back()->with('error', 'User not found');
+        }
+
+        if (!$user['is_special_user']) {
+            return redirect()->back()->with('error', 'User is not a special user');
+        }
+
+        // Use direct database query to bypass field protection
+        $db = \Config\Database::connect();
+
+        // Update user to remove special user status and clear wallet info
+        $updateData = [
+            'is_special_user' => 0,
+            'wallet_active' => 0,
+            'wallet_name' => null,
+            'wallet_number' => null,
+            'wallet_type' => null,
+            'bank_name' => null,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        $db->table('users')->where('id', $userId)->update($updateData);
+
+        // Deactivate their wallet
+        $wallet = $this->walletModel->getUserWallet($userId);
+        if ($wallet) {
+            $this->walletModel->update($wallet['id'], [
+                'wallet_active' => 0
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Special user status has been removed successfully.');
     }
 }

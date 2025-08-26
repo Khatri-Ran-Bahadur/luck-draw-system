@@ -82,13 +82,9 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Product Image -->
                 <div class="flex justify-center">
-                    <?php if (!empty($draw['product_image'])): ?>
-                        <img src="<?= base_url($draw['product_image']) ?>" alt="<?= esc($draw['product_name']) ?>" class="max-w-full h-64 object-cover rounded-xl shadow-lg">
-                    <?php else: ?>
-                        <div class="w-64 h-64 bg-gray-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-image text-gray-400 text-4xl"></i>
-                        </div>
-                    <?php endif; ?>
+                    <div class="w-64 h-64 rounded-xl shadow-lg overflow-hidden">
+                        <?= get_product_image($draw['product_image'], 'max-w-full h-64 object-cover rounded-xl shadow-lg', 'fas fa-image') ?>
+                    </div>
                 </div>
 
                 <!-- Product Details -->

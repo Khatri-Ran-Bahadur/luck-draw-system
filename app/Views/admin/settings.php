@@ -1,286 +1,200 @@
 <?= $this->extend('layouts/admin') ?>
 
 <?= $this->section('content') ?>
-<div class="space-y-8">
-    <!-- Enhanced Page Header -->
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 text-white">
-        <div class="flex items-center space-x-4">
-            <div class="w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                <i class="fas fa-user-cog text-3xl"></i>
-            </div>
-            <div>
-                <h1 class="text-3xl font-bold">Account Settings</h1>
-                <p class="text-blue-100 text-lg mt-1">Manage your account security and password</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Success/Error Messages -->
-    <?php if (session()->getFlashdata('success')): ?>
-        <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-            <div class="flex items-center">
-                <i class="fas fa-check-circle text-green-500 mr-3"></i>
-                <p class="text-green-700 font-medium"><?= session()->getFlashdata('success') ?></p>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <?php if (session()->getFlashdata('error')): ?>
-        <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-            <div class="flex items-center">
-                <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
-                <p class="text-red-700 font-medium"><?= session()->getFlashdata('error') ?></p>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <!-- Enhanced Settings Form -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-900">Account Settings</h2>
-            <p class="text-gray-600 mt-1">Update your password and account information</p>
+<div class="p-6">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Application Settings</h1>
+            <p class="text-gray-600 mt-2">Configure website settings, referral rewards, and payment methods</p>
         </div>
 
-        <form action="<?= base_url('admin/settings') ?>" method="post" class="p-8 space-y-8">
-            <?= csrf_field() ?>
+        <?php if (session()->getFlashdata('success')): ?>
+            <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
+                <?= session()->getFlashdata('success') ?>
+            </div>
+        <?php endif; ?>
 
-            <!-- Current Admin Info -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-                <h3 class="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-                    <i class="fas fa-user-circle mr-3 text-blue-600"></i>
-                    Current Account Information
-                </h3>
+        <?php if (session()->getFlashdata('error')): ?>
+            <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
+                <?= session()->getFlashdata('error') ?>
+            </div>
+        <?php endif; ?>
+
+        <form action="<?= base_url('admin/save-application-settings') ?>" method="POST" enctype="multipart/form-data">
+            <!-- Website Settings -->
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Website Settings</h2>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <label class="block text-sm font-medium text-blue-800">Username</label>
-                        <div class="bg-white px-4 py-3 rounded-lg border border-blue-200 text-blue-900 font-medium">
-                            <?= esc(session()->get('username')) ?>
-                        </div>
-                        <p class="text-xs text-blue-600">Username cannot be changed</p>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="block text-sm font-medium text-blue-800">Email Address</label>
-                        <div class="bg-white px-4 py-3 rounded-lg border border-blue-200 text-blue-900 font-medium">
-                            <?= esc(session()->get('email')) ?>
-                        </div>
-                        <p class="text-xs text-blue-600">Email cannot be changed</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Password Change Section -->
-            <div class="space-y-6">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-lock text-white"></i>
-                    </div>
+                    <!-- Website Name -->
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Change Password</h3>
-                        <p class="text-gray-600 text-sm">Update your password to keep your account secure</p>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Website Name</label>
+                        <input type="text" 
+                               name="website_name" 
+                               value="<?= esc($settings['website_name'] ?? 'Lucky Draw System') ?>"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter website name"
+                               required>
+                    </div>
+
+                    <!-- Contact Email -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                        <input type="email" 
+                               name="contact_email" 
+                               value="<?= esc($settings['contact_email'] ?? '') ?>"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter contact email">
+                    </div>
+
+                    <!-- Contact Phone -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contact Phone</label>
+                        <input type="tel" 
+                               name="contact_phone" 
+                               value="<?= esc($settings['contact_phone'] ?? '') ?>"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter contact phone">
                     </div>
                 </div>
 
-                <div class="space-y-6">
-                    <!-- Current Password -->
-                    <div class="space-y-2">
-                        <label for="current_password" class="block text-sm font-semibold text-gray-700">
-                            Current Password
-                            <span class="text-red-500 ml-1">*</span>
-                        </label>
-                        <div class="relative">
-                            <input type="password"
-                                name="current_password"
-                                id="current_password"
-                                required
-                                class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white hover:bg-gray-50"
-                                placeholder="Enter your current password">
-                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <i class="fas fa-eye text-gray-400 cursor-pointer hover:text-gray-600" onclick="togglePassword('current_password')"></i>
+                <!-- Logo Upload -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Website Logo</label>
+                    <div class="flex items-center space-x-6">
+                        <?php if (!empty($settings['website_logo'])): ?>
+                            <div class="w-32 h-20 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center overflow-hidden">
+                                <img src="<?= base_url('uploads/settings/' . $settings['website_logo']) ?>" 
+                                     alt="Website Logo" class="max-w-full max-h-full object-contain">
                             </div>
+                        <?php else: ?>
+                            <div class="w-32 h-20 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center">
+                                <i class="fas fa-image text-gray-400 text-2xl"></i>
+                            </div>
+                        <?php endif; ?>
+                        <div class="flex-1">
+                            <input type="file" 
+                                   name="website_logo" 
+                                   accept="image/*"
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p class="text-xs text-gray-500 mt-1">Recommended: 300x100px, PNG/JPG format</p>
                         </div>
-                        <p class="text-sm text-gray-500 mt-1">Enter your current password to verify your identity</p>
                     </div>
+                </div>
 
-                    <!-- New Password Fields -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label for="new_password" class="block text-sm font-semibold text-gray-700">
-                                New Password
-                                <span class="text-red-500 ml-1">*</span>
-                            </label>
-                            <div class="relative">
-                                <input type="password"
-                                    name="new_password"
-                                    id="new_password"
-                                    required
-                                    minlength="8"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white hover:bg-gray-50"
-                                    placeholder="Enter new password">
-                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                    <i class="fas fa-eye text-gray-400 cursor-pointer hover:text-gray-600" onclick="togglePassword('new_password')"></i>
-                                </div>
+                <!-- Favicon Upload -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Favicon</label>
+                    <div class="flex items-center space-x-6">
+                        <?php if (!empty($settings['favicon'])): ?>
+                            <div class="w-16 h-16 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center overflow-hidden">
+                                <img src="<?= base_url('uploads/settings/' . $settings['favicon']) ?>" 
+                                     alt="Favicon" class="max-w-full max-h-full object-contain">
                             </div>
-                            <p class="text-sm text-gray-500 mt-1">Minimum 8 characters required</p>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="confirm_password" class="block text-sm font-semibold text-gray-700">
-                                Confirm New Password
-                                <span class="text-red-500 ml-1">*</span>
-                            </label>
-                            <div class="relative">
-                                <input type="password"
-                                    name="confirm_password"
-                                    id="confirm_password"
-                                    required
-                                    minlength="8"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white hover:bg-gray-50"
-                                    placeholder="Confirm new password">
-                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                    <i class="fas fa-eye text-gray-400 cursor-pointer hover:text-gray-600" onclick="togglePassword('confirm_password')"></i>
-                                </div>
+                        <?php else: ?>
+                            <div class="w-16 h-16 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center">
+                                <i class="fas fa-star text-gray-400 text-xl"></i>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1">Must match your new password</p>
+                        <?php endif; ?>
+                        <div class="flex-1">
+                            <input type="file" 
+                                   name="favicon" 
+                                   accept="image/*"
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p class="text-xs text-gray-500 mt-1">Recommended: 32x32px, ICO/PNG format</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Enhanced Password Requirements -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
-                <div class="flex items-start space-x-4">
-                    <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                        <i class="fas fa-info text-white text-sm"></i>
+            <!-- Referral System Settings -->
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Referral System Settings</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Referral Bonus Percentage -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Referral Bonus Percentage (%)</label>
+                        <input type="number" 
+                               name="referral_bonus_percentage" 
+                               value="<?= esc($settings['referral_bonus_percentage'] ?? '5') ?>"
+                               min="0"
+                               max="100"
+                               step="0.01"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter bonus percentage">
+                        <p class="text-xs text-gray-500 mt-1">Percentage of topup amount given as referral bonus</p>
                     </div>
-                    <div class="flex-1">
-                        <h3 class="text-lg font-semibold text-blue-900 mb-3">Password Requirements</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-check-circle text-green-500"></i>
-                                <span class="text-sm text-blue-800">Minimum 8 characters long</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-check-circle text-green-500"></i>
-                                <span class="text-sm text-blue-800">Include uppercase and lowercase letters</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-check-circle text-green-500"></i>
-                                <span class="text-sm text-blue-800">Include numbers and special characters</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-check-circle text-green-500"></i>
-                                <span class="text-sm text-blue-800">Different from current password</span>
-                            </div>
-                        </div>
+                </div>
+            </div>
+
+            <!-- User Transfer Settings -->
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">User Transfer Settings</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Transfer System -->
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" 
+                                   name="user_transfer_enabled" 
+                                   value="1" 
+                                   <?= ($settings['user_transfer_enabled'] ?? '1') == '1' ? 'checked' : '' ?>
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm font-medium text-gray-700">Enable User-to-User Transfers</span>
+                        </label>
+                        <p class="text-xs text-gray-500 mt-1">Allow special users to transfer money to other users</p>
+                    </div>
+
+                    <!-- Transfer Fee -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Transfer Fee Percentage (%)</label>
+                        <input type="number" 
+                               name="transfer_fee_percentage" 
+                               value="<?= esc($settings['transfer_fee_percentage'] ?? '1') ?>"
+                               min="0"
+                               max="100"
+                               step="0.01"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter transfer fee">
+                        <p class="text-xs text-gray-500 mt-1">Fee charged on user-to-user transfers</p>
+                    </div>
+
+                    <!-- Minimum Transfer -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Minimum Transfer Amount (Rs.)</label>
+                        <input type="number" 
+                               name="min_transfer_amount" 
+                               value="<?= esc($settings['min_transfer_amount'] ?? '100') ?>"
+                               min="0"
+                               step="0.01"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter minimum amount">
+                    </div>
+
+                    <!-- Maximum Transfer -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Maximum Transfer Amount (Rs.)</label>
+                        <input type="number" 
+                               name="max_transfer_amount" 
+                               value="<?= esc($settings['max_transfer_amount'] ?? '10000') ?>"
+                               min="0"
+                               step="0.01"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter maximum amount">
                     </div>
                 </div>
             </div>
 
             <!-- Submit Button -->
-            <div class="flex justify-end pt-4">
-                <button type="submit" class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                    <i class="fas fa-save mr-2"></i>
-                    Update Password
+            <div class="flex justify-end">
+                <button type="submit" 
+                        class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-save mr-2"></i>Save All Settings
                 </button>
             </div>
         </form>
     </div>
-
-    <!-- Enhanced Security Tips -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div class="bg-gradient-to-r from-amber-50 to-orange-50 px-8 py-6 border-b border-amber-200">
-            <h3 class="text-xl font-semibold text-amber-900 flex items-center">
-                <i class="fas fa-shield-alt mr-3 text-amber-600"></i>
-                Security Best Practices
-            </h3>
-        </div>
-        <div class="p-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="space-y-4">
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-key text-amber-600 text-sm"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">Strong Passwords</h4>
-                            <p class="text-sm text-gray-600 mt-1">Use unique, complex passwords for each account and change them regularly.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-mobile-alt text-amber-600 text-sm"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">Two-Factor Authentication</h4>
-                            <p class="text-sm text-gray-600 mt-1">Enable 2FA on your account for an extra layer of security.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-eye-slash text-amber-600 text-sm"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">Privacy Protection</h4>
-                            <p class="text-sm text-gray-600 mt-1">Never share your password or login credentials with anyone.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-history text-amber-600 text-sm"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">Regular Updates</h4>
-                            <p class="text-sm text-gray-600 mt-1">Keep your password updated and monitor your account activity.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
-<script>
-    function togglePassword(fieldId) {
-        const field = document.getElementById(fieldId);
-        const icon = field.nextElementSibling.querySelector('i');
-
-        if (field.type === 'password') {
-            field.type = 'text';
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        } else {
-            field.type = 'password';
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
-    }
-
-    // Password strength validation
-    document.getElementById('new_password').addEventListener('input', function() {
-        const password = this.value;
-        const confirmPassword = document.getElementById('confirm_password');
-
-        if (confirmPassword.value && password !== confirmPassword.value) {
-            confirmPassword.setCustomValidity('Passwords do not match');
-        } else {
-            confirmPassword.setCustomValidity('');
-        }
-    });
-
-    document.getElementById('confirm_password').addEventListener('input', function() {
-        const password = document.getElementById('new_password').value;
-
-        if (this.value !== password) {
-            this.setCustomValidity('Passwords do not match');
-        } else {
-            this.setCustomValidity('');
-        }
-    });
-</script>
 <?= $this->endSection() ?>

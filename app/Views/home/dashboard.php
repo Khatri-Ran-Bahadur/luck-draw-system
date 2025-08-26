@@ -4,9 +4,15 @@
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Page Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Welcome Back!</h1>
-            <p class="text-gray-600 mt-2">Manage your lucky draws and wallet</p>
+        <div class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Welcome Back!</h1>
+                <p class="text-gray-600 mt-2">Manage your lucky draws and wallet</p>
+            </div>
+            <a href="<?= base_url('profile') ?>" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+                <i class="fas fa-user-circle mr-2"></i>
+                My Profile
+            </a>
         </div>
 
         <!-- Wallet Balance Card -->

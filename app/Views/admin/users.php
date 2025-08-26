@@ -24,6 +24,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Special User</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -31,7 +32,7 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php if (empty($users)): ?>
                         <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">No users found</td>
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">No users found</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($users as $user): ?>
@@ -64,6 +65,11 @@
                                         <?= ucfirst($user['status']) ?>
                                     </span>
                                 </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $user['is_special_user'] ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800' ?>">
+                                        <?= $user['is_special_user'] ? 'Yes' : 'No' ?>
+                                    </span>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <?= date('M d, Y', strtotime($user['created_at'])) ?>
                                 </td>
@@ -75,6 +81,15 @@
                                         <a href="<?= base_url('admin/users/edit/' . $user['id']) ?>" class="text-blue-600 hover:text-blue-900" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        <?php if ($user['is_special_user']): ?>
+                                            <a href="<?= base_url('admin/remove-special-user/' . $user['id']) ?>" class="text-orange-600 hover:text-orange-900" title="Remove Special User" onclick="return confirm('Are you sure you want to remove special user status from this user?')">
+                                                <i class="fas fa-user-minus"></i>
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="<?= base_url('admin/make-special-user/' . $user['id']) ?>" class="text-purple-600 hover:text-purple-900" title="Make Special User" onclick="return confirm('Are you sure you want to make this user a special user?')">
+                                                <i class="fas fa-user-plus"></i>
+                                            </a>
+                                        <?php endif; ?>
                                         <a href="<?= base_url('admin/users/delete/' . $user['id']) ?>" class="text-red-600 hover:text-red-900" title="Delete" onclick="return confirm('Are you sure you want to delete this user?')">
                                             <i class="fas fa-trash"></i>
                                         </a>

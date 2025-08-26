@@ -104,6 +104,23 @@
                     <?php endif; ?>
                 </div>
 
+                <div>
+                    <label for="referral_code" class="block text-sm font-medium text-gray-700 mb-2">Referral Code <span class="text-gray-500 text-xs">(Optional)</span></label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-gift text-gray-400"></i>
+                        </div>
+                        <input id="referral_code" name="referral_code" type="text"
+                            class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Enter referral code to get bonus"
+                            value="<?= session()->getFlashdata('old_input')['referral_code'] ?? session()->get('referral_code') ?? '' ?>">
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Enter a friend's referral code to earn bonus rewards when you register!
+                    </p>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>

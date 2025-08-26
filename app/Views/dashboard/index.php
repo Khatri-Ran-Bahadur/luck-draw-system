@@ -62,6 +62,40 @@ function getOrdinal($n)
     </div>
 </div>
 
+<!-- Referral Section -->
+<div class="bg-white rounded-2xl shadow-lg border border-gray-100 mb-6">
+    <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-gray-900">Referral Program</h2>
+            <a href="<?= base_url('referral-stats') ?>" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                View Details →
+            </a>
+        </div>
+    </div>
+    <div class="p-6">
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 text-center">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Earn Money by Referring Friends!</h3>
+            <p class="text-gray-600 mb-4">Share your referral code and earn bonuses when friends join</p>
+            
+            <div class="bg-white rounded-lg p-4 inline-block mb-4">
+                <p class="text-sm text-gray-500 mb-1">Your Referral Code</p>
+                <span class="text-2xl font-bold text-gray-900 tracking-widest"><?= session()->get('referral_code') ?? 'GENERATE' ?></span>
+            </div>
+            
+            <div class="flex justify-center space-x-4">
+                <a href="<?= base_url('referral-stats') ?>" 
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-chart-bar mr-2"></i>View Stats
+                </a>
+                <a href="<?= base_url('my-referrals') ?>" 
+                   class="inline-flex items-center px-4 py-2 border border-blue-600 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors">
+                    <i class="fas fa-users mr-2"></i>My Referrals
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- My Winnings Section -->
 <div class="bg-white rounded-2xl shadow-lg border border-gray-100">
     <div class="p-6 border-b border-gray-200">
