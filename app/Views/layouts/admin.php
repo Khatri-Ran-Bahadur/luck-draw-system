@@ -335,14 +335,7 @@
                         <i class="fas fa-money-bill-wave mr-3 h-5 w-5 flex-shrink-0"></i>
                         Withdrawal Requests
                     </a>
-                    <a href="<?= base_url('admin/user-transfers') ?>" class="nav-item <?= strpos(current_url(), 'admin/user-transfers') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
-                        <i class="fas fa-exchange-alt mr-3 h-5 w-5 flex-shrink-0"></i>
-                        User Transfers
-                    </a>
-                    <a href="<?= base_url('admin/user-wallets') ?>" class="nav-item <?= strpos(current_url(), 'admin/user-wallets') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
-                        <i class="fas fa-credit-card mr-3 h-5 w-5 flex-shrink-0"></i>
-                        User Wallets
-                    </a>
+                    
                 </div>
 
                 <!-- System Management -->
@@ -355,6 +348,10 @@
                     <a href="<?= base_url('admin/profile') ?>" class="nav-item <?= strpos(current_url(), 'admin/profile') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
                         <i class="fas fa-user-circle mr-3 h-5 w-5 flex-shrink-0"></i>
                         My Profile
+                    </a>
+                    <a href="<?= base_url('admin/admin-wallet-info') ?>" class="nav-item <?= strpos(current_url(), 'admin/admin-wallet-info') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
+                        <i class="fas fa-wallet mr-3 h-5 w-5 flex-shrink-0"></i>
+                        Admin Wallet
                     </a>
                 </div>
 

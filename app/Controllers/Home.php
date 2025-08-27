@@ -77,6 +77,33 @@ class Home extends BaseController
         return view('home/index', $data);
     }
 
+    /**
+     * Smart dashboard route - redirects users to appropriate dashboard based on role
+     */
+    public function smartDashboard()
+    {
+        // Check if user is logged in
+        if (!session()->get('user_id')) {
+            return redirect()->to('login');
+        }
+
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+
+        // Check if user is admin
+        if ($user['is_admin'] ?? false) {
+            return redirect()->to('admin/dashboard');
+        }
+
+        // Check if user is special user
+        if ($user['is_special_user'] ?? false) {
+            return redirect()->to('user-dashboard');
+        }
+
+        // Normal user - redirect to user dashboard
+        return redirect()->to('user-dashboard');
+    }
+
     public function dashboard()
     {
         // Check if user is logged in
@@ -134,7 +161,11 @@ class Home extends BaseController
             }
         }
 
+        // Get user data to check if they are a special user
+        $user = $this->userModel->find($userId);
+
         $data = [
+            'user' => $user,
             'walletBalance' => $walletBalance,
             'cashDraws' => $cashDraws,
             'productDraws' => $productDraws,
@@ -237,27 +268,51 @@ class Home extends BaseController
             'phone' => $phone
         ];
 
-        if ($profileImage && $profileImage->isValid() && !$profileImage->hasMoved()) {
-            $uploadPath = 'uploads/profiles/';
-
-            // Create directory if it doesn't exist
-            if (!is_dir($uploadPath)) {
-                mkdir($uploadPath, 0755, true);
+        if ($profileImage && $profileImage->isValid()) {
+            // Check file size (5MB limit)
+            if ($profileImage->getSize() > 5 * 1024 * 1024) {
+                return redirect()->back()->with('error', 'Image file size must be less than 5MB');
             }
 
-            $newName = 'profile_' . $userId . '_' . time() . '.' . $profileImage->getExtension();
-            $profileImage->move($uploadPath, $newName);
-            $updateData['profile_image'] = $uploadPath . $newName;
+            // Check file type
+            $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!in_array($profileImage->getMimeType(), $allowedTypes)) {
+                return redirect()->back()->with('error', 'Only JPG, PNG, and GIF images are allowed');
+            }
 
-            // Delete old profile image if exists
-            if ($user['profile_image'] && file_exists($user['profile_image'])) {
-                unlink($user['profile_image']);
+            try {
+                $uploadPath = ROOTPATH . 'public/uploads/profiles/';
+
+                // Create directory if it doesn't exist
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0755, true);
+                }
+
+                $newName = $profileImage->getRandomName();
+                if ($profileImage->move($uploadPath, $newName)) {
+                    $updateData['profile_image'] = 'uploads/profiles/' . $newName;
+
+                    // Delete old profile image if exists
+                    if ($user['profile_image'] && file_exists(ROOTPATH . 'public/' . $user['profile_image'])) {
+                        unlink(ROOTPATH . 'public/' . $user['profile_image']);
+                    }
+                } else {
+                    return redirect()->back()->with('error', 'Failed to upload image. Please try again.');
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Profile image upload failed: ' . $e->getMessage());
+                return redirect()->back()->with('error', 'Image upload failed. Please try again.');
             }
         }
 
+        // Skip validation to avoid password requirement issues
+        $this->userModel->skipValidation(true);
+
         if ($this->userModel->update($userId, $updateData)) {
+            log_message('info', 'User profile update successful - User ID: ' . $userId . ', Data: ' . json_encode($updateData));
             return redirect()->back()->with('success', 'Profile updated successfully');
         } else {
+            log_message('error', 'User profile update failed - User ID: ' . $userId . ', Data: ' . json_encode($updateData));
             return redirect()->back()->with('error', 'Failed to update profile');
         }
     }

@@ -18,7 +18,7 @@
 
         <!-- Header -->
         <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Notifications</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Latest Notifications</h3>
             <div class="flex space-x-2">
                 <button onclick="markAllAsRead()"
                     class="text-sm text-blue-600 hover:text-blue-800"
@@ -29,6 +29,11 @@
                     class="text-sm text-gray-600 hover:text-gray-800"
                     title="Refresh">
                     <i class="fas fa-sync-alt"></i>
+                </button>
+                <button onclick="forceRefreshNotifications()"
+                    class="text-sm text-green-600 hover:text-green-800"
+                    title="Force Refresh">
+                    <i class="fas fa-redo"></i>
                 </button>
             </div>
         </div>
@@ -68,13 +73,15 @@
         <div class="px-4 py-3 border-t border-gray-200 text-center">
             <?php if (session()->get('is_admin')): ?>
                 <a href="<?= base_url('admin/notifications') ?>"
-                    class="text-sm text-blue-600 hover:text-blue-800">
-                    View all notifications
+                    class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-list mr-2"></i>
+                    Show All Notifications
                 </a>
             <?php else: ?>
                 <a href="<?= base_url('notifications') ?>"
-                    class="text-sm text-blue-600 hover:text-blue-800">
-                    View all notifications
+                    class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-list mr-2"></i>
+                    Show All Notifications
                 </a>
             <?php endif; ?>
         </div>
@@ -113,32 +120,82 @@
 
         if (notificationDropdownOpen) {
             panel.classList.remove('hidden');
-            loadNotifications();
+            // Check if session is ready before loading
+            if (isSessionReady()) {
+                loadNotifications();
+            } else {
+                // Wait a bit for session to initialize
+                setTimeout(() => {
+                    if (isSessionReady()) {
+                        loadNotifications();
+                    } else {
+                        showError('Session not ready. Please refresh the page.');
+                    }
+                }, 500);
+            }
         } else {
             panel.classList.add('hidden');
         }
     }
 
+    // Check if session is ready
+    function isSessionReady() {
+        const isAuthenticated = <?= session()->get('user_id') || session()->get('is_admin') ? 'true' : 'false' ?>;
+        return isAuthenticated;
+    }
+
     // Load notifications
     function loadNotifications() {
+        // Check if user is authenticated
+        const isAuthenticated = <?= session()->get('user_id') || session()->get('is_admin') ? 'true' : 'false' ?>;
+        if (!isAuthenticated) {
+            showError('Please log in to view notifications');
+            return;
+        }
+
         const isAdmin = <?= session()->get('is_admin') ? 'true' : 'false' ?>;
-        const endpoint = isAdmin ? 'notifications/admin' : 'notifications/user';
+        const endpoint = isAdmin ? 'admin/header-notifications' : 'notifications/user';
         const unreadOnly = currentFilter === 'unread';
 
-        fetch(`<?= base_url() ?>/${endpoint}?unread_only=${unreadOnly}&limit=20`)
-            .then(response => response.json())
+        // Show loading state
+        document.getElementById('notificationsLoading').classList.remove('hidden');
+        document.getElementById('notificationsEmpty').classList.add('hidden');
+
+        // Use absolute URL to avoid any base URL issues
+        const url = `${window.location.origin}/${endpoint}?unread_only=${unreadOnly}&limit=10`;
+        console.log('Loading notifications from:', url);
+
+        fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin' // Include cookies/session
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        throw new Error('Authentication required. Please refresh the page and try again.');
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
                     notifications = data.notifications;
                     renderNotifications(data.notifications);
                     updateNotificationBadge(data.unread_count);
                 } else {
-                    showError('Failed to load notifications');
+                    showError(data.message || 'Failed to load notifications');
                 }
             })
             .catch(error => {
                 console.error('Error loading notifications:', error);
-                showError('Error loading notifications');
+                showError(`Error: ${error.message}. Please try again or visit the notifications page.`);
             })
             .finally(() => {
                 document.getElementById('notificationsLoading').classList.add('hidden');
@@ -167,23 +224,23 @@
              data-id="${notification.id}">
             <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0">
-                    <div class="w-8 h-8 rounded-full bg-${notification.style.color}-100 flex items-center justify-center">
-                        <i class="fas ${notification.style.icon} text-${notification.style.color}-600 text-sm"></i>
+                    <div class="w-8 h-8 rounded-full bg-${notification.style?.color || 'blue'}-100 flex items-center justify-center">
+                        <i class="fas ${notification.style?.icon || 'fa-bell'} text-${notification.style?.color || 'blue'}-600 text-sm"></i>
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between">
                         <p class="text-sm font-medium text-gray-900 truncate">
-                            ${notification.title}
+                            ${notification.title || 'Notification'}
                         </p>
                         <div class="flex items-center space-x-2">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${notification.priority_style.class}">
-                                ${notification.priority_style.text}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${notification.priority_style?.class || 'bg-gray-100 text-gray-800'}">
+                                ${notification.priority_style?.text || 'Normal'}
                             </span>
-                            <span class="text-xs text-gray-500">${notification.time_ago}</span>
+                            <span class="text-xs text-gray-500">${notification.time_ago || 'Just now'}</span>
                         </div>
                     </div>
-                    <p class="text-sm text-gray-600 mt-1">${notification.message}</p>
+                    <p class="text-sm text-gray-600 mt-1">${notification.message || 'No message content'}</p>
                     <div class="flex items-center justify-between mt-2">
                         <div class="flex space-x-2">
                             ${!notification.is_read ? `
@@ -231,7 +288,6 @@
         event.target.classList.remove('text-gray-600');
 
         // Reload notifications with filter
-        document.getElementById('notificationsLoading').classList.remove('hidden');
         loadNotifications();
     }
 
@@ -307,7 +363,11 @@
 
     // Refresh notifications
     function refreshNotifications() {
-        document.getElementById('notificationsLoading').classList.remove('hidden');
+        loadNotifications();
+    }
+
+    // Force refresh notifications (for testing)
+    function forceRefreshNotifications() {
         loadNotifications();
     }
 
@@ -328,8 +388,18 @@
         const container = document.getElementById('notificationsList');
         container.innerHTML = `
         <div class="p-4 text-center text-red-500">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p class="mt-2">${message}</p>
+            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+            <p class="mt-2 font-medium">${message}</p>
+            <div class="mt-3 space-y-2">
+                <button onclick="loadNotifications()" class="text-sm text-blue-600 hover:text-blue-800 underline">
+                    Try Again
+                </button>
+                <br>
+                <a href="<?= base_url(session()->get('is_admin') ? 'admin/notifications' : 'notifications') ?>" 
+                   class="text-sm text-green-600 hover:text-green-800 underline">
+                    Go to Notifications Page
+                </a>
+            </div>
         </div>
     `;
     }

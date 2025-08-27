@@ -56,8 +56,13 @@ class Auth extends BaseController
 
             if ($user && $this->userModel->verifyPassword($password, $user['password'])) {
 
-                if ($user['status'] !== 'active') {
-                    session()->setFlashdata('error', 'Your account is not active. Please contact administrator.');
+                if ($user['status'] === 'suspended') {
+                    session()->setFlashdata('error', 'Your account has been suspended. Please contact administrator for assistance.');
+                    return redirect()->back()->withInput();
+                }
+
+                if ($user['status'] === 'inactive') {
+                    session()->setFlashdata('error', 'Your account is inactive. Please contact administrator to activate your account.');
                     return redirect()->back()->withInput();
                 }
 
@@ -112,7 +117,7 @@ class Auth extends BaseController
             // Handle referral code
             $referrerId = null;
             $referralCode = null;
-            
+
             if (!empty($formData['referral_code'])) {
                 $referrer = $this->userModel->findByReferralCode($formData['referral_code']);
                 if ($referrer && $referrer['id'] != session()->get('user_id')) {
@@ -203,7 +208,7 @@ class Auth extends BaseController
 
                 // Get referrer's wallet
                 $referrerWallet = $walletModel->getUserWallet($referrerId);
-                
+
                 if ($referrerWallet) {
                     // Add bonus to referrer's wallet
                     $walletModel->updateBalance($referrerWallet['id'], $bonusAmount, 'add');
@@ -249,7 +254,7 @@ class Auth extends BaseController
     {
         // Store referral code in session for registration
         session()->set('referral_code', $referralCode);
-        
+
         // Redirect to registration page
         return redirect()->to(base_url('register'));
     }

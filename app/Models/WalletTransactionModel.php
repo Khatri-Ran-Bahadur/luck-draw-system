@@ -33,12 +33,12 @@ class WalletTransactionModel extends Model
 
     protected $validationRules = [
         'wallet_id' => 'required|integer|greater_than[0]',
-        'type' => 'required|in_list[topup,deduction,draw_entry,draw_win,withdrawal]',
+        'type' => 'required|in_list[topup,deduction,draw_entry,draw_win,withdrawal,commission]',
         'amount' => 'required|numeric',
         'balance_before' => 'required|numeric',
         'balance_after' => 'required|numeric',
         'status' => 'required|in_list[pending,completed,failed,cancelled]',
-        'payment_method' => 'permit_empty|in_list[paypal,easypaisa,wallet]'
+        'payment_method' => 'permit_empty|in_list[paypal,easypaisa,wallet,commission]'
     ];
 
     // Get user's transaction history

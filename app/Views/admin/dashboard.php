@@ -124,8 +124,8 @@
         <div class="bg-gradient-to-r from-green-600 to-emerald-700 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h3 class="text-xl font-semibold">Wallet Top-ups</h3>
-                    <p class="text-green-100">Manage user top-up requests</p>
+                    <h3 class="text-xl font-semibold">Special User Top-ups</h3>
+                    <p class="text-green-100">Manage top-up requests from special users only</p>
                 </div>
                 <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
                     <i class="fas fa-wallet text-2xl"></i>
@@ -134,11 +134,11 @@
             <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <div class="text-green-100">Pending</div>
-                    <div class="font-semibold"><?= $topup_stats['pending'] ?></div>
+                    <div class="font-semibold"><?= $topup_stats['pending_requests'] ?? 0 ?></div>
                 </div>
                 <div>
                     <div class="text-green-100">Total</div>
-                    <div class="font-semibold"><?= $topup_stats['total'] ?></div>
+                    <div class="font-semibold"><?= $topup_stats['total_requests'] ?? 0 ?></div>
                 </div>
             </div>
             <div class="mt-4">
@@ -178,7 +178,7 @@
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h3 class="text-lg font-semibold mb-2">User Transfers</h3>
-                    <div class="text-3xl font-bold"><?= $transfer_stats['pending_transfers'] ?></div>
+                    <div class="text-3xl font-bold"><?= $transfer_stats['pending_transfers'] ?? 0 ?></div>
                     <p class="text-orange-100 text-sm">Pending Transfers</p>
                 </div>
                 <div class="w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
@@ -188,11 +188,11 @@
             <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <div class="text-orange-100">Total Amount</div>
-                    <div class="font-semibold">Rs. <?= number_format($transfer_stats['total_amount_transferred'], 2) ?></div>
+                    <div class="font-semibold">Rs. <?= number_format($transfer_stats['total_amount_transferred'] ?? 0, 2) ?></div>
                 </div>
                 <div>
                     <div class="text-orange-100">Completed</div>
-                    <div class="font-semibold"><?= $transfer_stats['completed_transfers'] ?></div>
+                    <div class="font-semibold"><?= $transfer_stats['completed_transfers'] ?? 0 ?></div>
                 </div>
             </div>
         </div>

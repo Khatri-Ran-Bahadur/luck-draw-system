@@ -37,10 +37,30 @@
                     <i class="fas fa-camera mr-3 text-purple-600"></i>
                     Profile Image
                 </h3>
+
+
+
                 <div class="flex items-center space-x-8">
                     <div class="w-28 h-28 bg-white rounded-2xl flex items-center justify-center overflow-hidden border-2 border-purple-200 shadow-lg">
                         <?php if ($admin['profile_image']): ?>
-                            <img id="image-preview" src="<?= base_url($admin['profile_image']) ?>" alt="<?= esc($admin['full_name']) ?>" class="w-full h-full object-cover">
+                            <?php
+                            // Handle both full path and filename cases
+                            $imagePath = $admin['profile_image'];
+                            if (strpos($imagePath, 'uploads/') === 0) {
+                                // Already has uploads/ prefix
+                                $imageSrc = base_url($imagePath);
+                            } else {
+                                // Just filename, add uploads/profiles/ prefix
+                                $imageSrc = base_url('uploads/profiles/' . $imagePath);
+                            }
+                            ?>
+                            <img id="image-preview"
+                                src="<?= $imageSrc ?>"
+                                alt="<?= esc($admin['full_name']) ?>"
+                                class="w-full h-full object-cover"
+                                onerror="console.log('Image failed to load:', this.src); this.style.display='none'; document.getElementById('default-icon').style.display='flex';"
+                                onload="console.log('Image loaded successfully:', this.src); document.getElementById('default-icon').style.display='none';">
+                            <i class="fas fa-user-shield text-4xl text-purple-400" id="default-icon" style="display: none;"></i>
                         <?php else: ?>
                             <img id="image-preview" src="" alt="" class="w-full h-full object-cover hidden">
                             <i class="fas fa-user-shield text-4xl text-purple-400" id="default-icon"></i>

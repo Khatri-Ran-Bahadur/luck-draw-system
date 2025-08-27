@@ -21,7 +21,7 @@
 
     <!-- Edit Form -->
     <div class="glass-card">
-        <form action="<?= base_url('admin/users/edit/' . $user['id']) ?>" method="post" class="p-6 space-y-6">
+        <form action="<?= base_url('admin/users/edit/' . $user['id']) ?>" method="post" enctype="multipart/form-data" class="p-6 space-y-6">
             <?= csrf_field() ?>
 
             <!-- User Information Section -->
@@ -80,6 +80,51 @@
                                 <i class="fas fa-ban"></i> Suspended
                             </option>
                         </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Image Section -->
+            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200">
+                <h3 class="text-lg font-semibold text-purple-900 mb-4 flex items-center">
+                    <i class="fas fa-camera mr-3 text-purple-600"></i>
+                    Profile Image
+                </h3>
+                <div class="flex items-center space-x-8">
+                    <div class="w-28 h-28 bg-white rounded-2xl flex items-center justify-center overflow-hidden border-2 border-purple-200 shadow-lg">
+                        <?php if ($user['profile_image']): ?>
+                            <?php
+                            // Handle both full path and filename cases
+                            $imagePath = $user['profile_image'];
+                            if (strpos($imagePath, 'uploads/') === 0) {
+                                // Already has uploads/ prefix
+                                $imageSrc = base_url($imagePath);
+                            } else {
+                                // Just filename, add uploads/profiles/ prefix
+                                $imageSrc = base_url('uploads/profiles/' . $imagePath);
+                            }
+                            ?>
+                            <img id="image-preview"
+                                src="<?= $imageSrc ?>"
+                                alt="<?= esc($user['full_name']) ?>"
+                                class="w-full h-full object-cover"
+                                onerror="this.style.display='none'; document.getElementById('default-icon').style.display='flex';"
+                                onload="this.style.display='block'; document.getElementById('default-icon').style.display='none';">
+                            <i class="fas fa-user text-4xl text-purple-400" id="default-icon" style="display: none;"></i>
+                        <?php else: ?>
+                            <img id="image-preview" src="" alt="" class="w-full h-full object-cover hidden">
+                            <i class="fas fa-user text-4xl text-purple-400" id="default-icon"></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="flex-1 space-y-3">
+                        <div class="relative">
+                            <input type="file"
+                                name="profile_image"
+                                id="profile_image"
+                                accept="image/*"
+                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200 transition-all duration-200 cursor-pointer">
+                        </div>
+                        <p class="text-sm text-purple-600">PNG, JPG, GIF up to 5MB. Leave empty to keep current image.</p>
                     </div>
                 </div>
             </div>
@@ -177,4 +222,32 @@
         cursor: pointer;
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.getElementById('profile_image');
+        const imagePreview = document.getElementById('image-preview');
+        const defaultIcon = document.getElementById('default-icon');
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                    alert('File size must be less than 5MB');
+                    this.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    imagePreview.style.display = 'block';
+                    if (defaultIcon) defaultIcon.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+</script>
 <?= $this->endSection() ?>

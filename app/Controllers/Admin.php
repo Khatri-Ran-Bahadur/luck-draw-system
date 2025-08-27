@@ -29,6 +29,7 @@ class Admin extends BaseController
     protected $walletTopupRequestModel;
     protected $userTransferModel;
     protected $settingModel;
+    protected $notificationModel;
     protected $notificationService;
     protected $currencyService;
     protected $db;
@@ -46,6 +47,7 @@ class Admin extends BaseController
         $this->walletTopupRequestModel = new WalletTopupRequestModel();
         $this->userTransferModel = new UserTransferModel();
         $this->settingModel = new SettingModel();
+        $this->notificationModel = new \App\Models\NotificationModel();
         $this->notificationService = new NotificationService();
         $this->currencyService = new CurrencyService();
         $this->db = \Config\Database::connect();
@@ -96,8 +98,8 @@ class Admin extends BaseController
         $drawGrowth = $this->calculateDrawGrowth();
         $transactionGrowth = $this->calculateTransactionGrowth();
 
-        // Wallet and top-up statistics
-        $topupStats = $this->walletTopupRequestModel->getTopupStats();
+        // Wallet and top-up statistics (only special user requests for admin dashboard)
+        $topupStats = $this->walletTopupRequestModel->getSpecialUserTopupStats();
         $transferStats = $this->userTransferModel->getTransferStats();
 
         return [
@@ -385,17 +387,63 @@ class Admin extends BaseController
                 $data['password'] = password_hash($newPassword, PASSWORD_DEFAULT);
             }
 
-            // Handle image upload
+            // Handle image upload with better error handling
             $image = $this->request->getFile('profile_image');
-            if ($image && $image->isValid() && !$image->hasMoved()) {
-                $newName = $image->getRandomName();
-                $image->move(ROOTPATH . 'public/uploads/profiles', $newName);
-                $data['profile_image'] = 'uploads/profiles/' . $newName;
+
+            // Debug: Log file upload information
+            log_message('info', 'File upload attempt - File object: ' . ($image ? 'exists' : 'null'));
+            if ($image) {
+                log_message('info', 'File details - Name: ' . $image->getName() . ', Size: ' . $image->getSize() . ', Valid: ' . ($image->isValid() ? 'yes' : 'no'));
             }
 
+            if ($image && $image->isValid()) {
+                // Check file size (5MB limit)
+                if ($image->getSize() > 5 * 1024 * 1024) {
+                    return redirect()->back()->with('error', 'Image file size must be less than 5MB');
+                }
+
+                // Check file type
+                $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!in_array($image->getMimeType(), $allowedTypes)) {
+                    return redirect()->back()->with('error', 'Only JPG, PNG, and GIF images are allowed');
+                }
+
+                try {
+                    // Generate unique filename
+                    $newName = $image->getRandomName();
+                    $uploadPath = ROOTPATH . 'public/uploads/profiles/';
+
+                    // Ensure upload directory exists
+                    if (!is_dir($uploadPath)) {
+                        mkdir($uploadPath, 0755, true);
+                    }
+
+                    // Move uploaded file
+                    if ($image->move($uploadPath, $newName)) {
+                        $data['profile_image'] = 'uploads/profiles/' . $newName;
+
+                        // Delete old image if exists
+                        $oldAdmin = $this->userModel->find($id);
+                        if ($oldAdmin && $oldAdmin['profile_image'] && file_exists(ROOTPATH . 'public/' . $oldAdmin['profile_image'])) {
+                            unlink(ROOTPATH . 'public/' . $oldAdmin['profile_image']);
+                        }
+                    } else {
+                        return redirect()->back()->with('error', 'Failed to upload image. Please try again.');
+                    }
+                } catch (\Exception $e) {
+                    log_message('error', 'Image upload failed: ' . $e->getMessage());
+                    return redirect()->back()->with('error', 'Image upload failed. Please try again.');
+                }
+            }
+
+            // Skip validation to avoid password requirement issues
+            $this->userModel->skipValidation(true);
+
             if ($this->userModel->update($id, $data)) {
+                log_message('info', 'Admin update successful - Data: ' . json_encode($data));
                 return redirect()->to(base_url('admin/admins'))->with('success', 'Admin updated successfully');
             } else {
+                log_message('error', 'Admin update failed - Data: ' . json_encode($data));
                 return redirect()->back()->with('error', 'Failed to update admin');
             }
         }
@@ -522,9 +570,56 @@ class Admin extends BaseController
                 'status' => $this->request->getPost('status')
             ];
 
+            // Handle profile image upload
+            $image = $this->request->getFile('profile_image');
+            if ($image && $image->isValid()) {
+                // Check file size (5MB limit)
+                if ($image->getSize() > 5 * 1024 * 1024) {
+                    return redirect()->back()->with('error', 'Image file size must be less than 5MB');
+                }
+
+                // Check file type
+                $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!in_array($image->getMimeType(), $allowedTypes)) {
+                    return redirect()->back()->with('error', 'Only JPG, PNG, and GIF images are allowed');
+                }
+
+                try {
+                    // Generate unique filename
+                    $newName = $image->getRandomName();
+                    $uploadPath = ROOTPATH . 'public/uploads/profiles/';
+
+                    // Ensure upload directory exists
+                    if (!is_dir($uploadPath)) {
+                        mkdir($uploadPath, 0755, true);
+                    }
+
+                    // Move uploaded file
+                    if ($image->move($uploadPath, $newName)) {
+                        $data['profile_image'] = 'uploads/profiles/' . $newName;
+
+                        // Delete old image if exists
+                        $oldUser = $this->userModel->find($id);
+                        if ($oldUser && $oldUser['profile_image'] && file_exists(ROOTPATH . 'public/' . $oldUser['profile_image'])) {
+                            unlink(ROOTPATH . 'public/' . $oldUser['profile_image']);
+                        }
+                    } else {
+                        return redirect()->back()->with('error', 'Failed to upload image. Please try again.');
+                    }
+                } catch (\Exception $e) {
+                    log_message('error', 'Image upload failed: ' . $e->getMessage());
+                    return redirect()->back()->with('error', 'Image upload failed. Please try again.');
+                }
+            }
+
+            // Skip validation to avoid password requirement issues
+            $this->userModel->skipValidation(true);
+
             if ($this->userModel->update($id, $data)) {
+                log_message('info', 'User update successful - Data: ' . json_encode($data));
                 return redirect()->to(base_url('admin/users'))->with('success', 'User updated successfully');
             } else {
+                log_message('error', 'User update failed - Data: ' . json_encode($data));
                 return redirect()->back()->with('error', 'Failed to update user');
             }
         }
@@ -1013,7 +1108,82 @@ class Admin extends BaseController
 
     public function notifications()
     {
-        return view('admin/notifications');
+        // Get pagination parameters
+        $page = (int)($this->request->getGet('page') ?? 1);
+        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $perPage = max(1, min($perPage, 100)); // Limit per_page between 1 and 100
+        $offset = ($page - 1) * $perPage;
+
+        // Get filter parameters
+        $filter = $this->request->getGet('filter') ?? 'all';
+        $dateFilter = $this->request->getGet('date') ?? '';
+
+        // Build query based on filters - use a fresh query builder to avoid conflicts
+        $db = \Config\Database::connect();
+        $builder = $db->table('notifications')
+            ->select('notifications.*, u.username, u.full_name, u.email')
+            ->join('users u', 'u.id = notifications.user_id', 'left')
+            ->where('notifications.admin_id IS NULL'); // Admin notifications
+
+        // Apply filters
+        if ($filter === 'unread') {
+            $builder->where('notifications.is_read', false);
+        } elseif ($filter !== 'all') {
+            $builder->where('notifications.type', $filter);
+        }
+
+        // Apply date filter
+        if ($dateFilter) {
+            $builder->where('DATE(notifications.created_at)', $dateFilter);
+        }
+
+        // Get total count for pagination
+        $totalNotifications = $builder->countAllResults(false);
+
+        // Get notifications with pagination
+        $notifications = $builder->orderBy('notifications.created_at', 'DESC')
+            ->limit($perPage, $offset)
+            ->get()
+            ->getResultArray();
+
+        // Add styling information
+        foreach ($notifications as &$notification) {
+            $notification['style'] = $this->notificationService->getNotificationStyle($notification['type']);
+            $notification['priority_style'] = $this->notificationService->getPriorityStyle($notification['priority']);
+            $notification['time_ago'] = $this->timeAgo($notification['created_at']);
+        }
+
+        // Calculate pagination using helper
+        $pager = \App\Helpers\PaginationHelper::generatePager($totalNotifications, $page, $perPage);
+
+        // Get notification statistics
+        $stats = $this->notificationModel->getStats();
+
+        $data = [
+            'title' => 'Notifications Center',
+            'notifications' => $notifications,
+            'pager' => $pager,
+            'stats' => $stats,
+            'current_filter' => $filter,
+            'date_filter' => $dateFilter
+        ];
+
+        return view('admin/notifications', $data);
+    }
+
+    /**
+     * Helper function to calculate time ago
+     */
+    private function timeAgo($datetime)
+    {
+        $time = time() - strtotime($datetime);
+
+        if ($time < 60) return 'just now';
+        if ($time < 3600) return floor($time / 60) . 'm ago';
+        if ($time < 86400) return floor($time / 3600) . 'h ago';
+        if ($time < 2592000) return floor($time / 86400) . 'd ago';
+        if ($time < 31536000) return floor($time / 2592000) . 'mo ago';
+        return floor($time / 31536000) . 'y ago';
     }
 
     public function transactionDetails($id)
@@ -2420,8 +2590,9 @@ class Admin extends BaseController
         $page = $this->request->getGet('page') ?? 1;
         $perPage = 20;
 
-        $data['requests'] = $this->walletTopupRequestModel->getPendingRequests($perPage);
-        $data['stats'] = $this->walletTopupRequestModel->getTopupStats();
+        // Only show requests from special users (who are requesting top-ups from admin)
+        $data['requests'] = $this->walletTopupRequestModel->getPendingSpecialUserRequests($perPage);
+        $data['stats'] = $this->walletTopupRequestModel->getSpecialUserTopupStats();
 
         return view('admin/topup_requests', $data);
     }
@@ -2608,12 +2779,13 @@ class Admin extends BaseController
             $walletNumber = $this->request->getPost('wallet_number');
             $walletType = $this->request->getPost('wallet_type');
             $bankName = $this->request->getPost('bank_name');
-            $isActive = $this->request->getPost('is_active') ? true : false;
+            $walletActive = $this->request->getPost('is_active') ? true : false;
+            $userStatus = $this->request->getPost('user_status') ?? 'active';
 
-            if ($this->userModel->updateSpecialUserWallet($userId, $walletName, $walletNumber, $walletType, $bankName, $isActive)) {
-                return redirect()->back()->with('success', 'Special user wallet information updated successfully');
+            if ($this->userModel->updateSpecialUserWallet($userId, $walletName, $walletNumber, $walletType, $bankName, $walletActive, $userStatus)) {
+                return redirect()->back()->with('success', 'Special user information updated successfully');
             } else {
-                return redirect()->back()->with('error', 'Failed to update wallet information');
+                return redirect()->back()->with('error', 'Failed to update user information');
             }
         }
 
@@ -2683,6 +2855,9 @@ class Admin extends BaseController
             $updateData['profile_image'] = $newName;
         }
 
+        // Skip validation for profile updates since we're not updating password
+        $this->userModel->skipValidation(true);
+
         if ($this->userModel->update($adminId, $updateData)) {
             return redirect()->back()->with('success', 'Profile updated successfully');
         } else {
@@ -2746,6 +2921,49 @@ class Admin extends BaseController
     }
 
     /**
+     * Admin wallet information management
+     */
+    public function adminWalletInfo()
+    {
+        if (!session()->get('is_admin')) {
+            return redirect()->to('/admin/login');
+        }
+
+        $adminId = session()->get('user_id');
+        $admin = $this->userModel->find($adminId);
+
+        if ($this->request->getMethod() === 'POST') {
+            $walletName = $this->request->getPost('wallet_name');
+            $walletNumber = $this->request->getPost('wallet_number');
+            $walletType = $this->request->getPost('wallet_type');
+            $bankName = $this->request->getPost('bank_name');
+
+            // Update admin wallet information
+            $updateData = [
+                'wallet_name' => $walletName,
+                'wallet_number' => $walletNumber,
+                'wallet_type' => $walletType,
+                'bank_name' => $bankName,
+                'wallet_active' => 1,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($this->userModel->update($adminId, $updateData)) {
+                return redirect()->back()->with('success', 'Admin wallet information updated successfully');
+            } else {
+                return redirect()->back()->with('error', 'Failed to update wallet information');
+            }
+        }
+
+        $data = [
+            'title' => 'Admin Wallet Information',
+            'admin' => $admin
+        ];
+
+        return view('admin/admin_wallet_info', $data);
+    }
+
+    /**
      * Save application settings
      */
     public function saveSettings()
@@ -2756,18 +2974,15 @@ class Admin extends BaseController
 
         try {
             // Website Settings
-            $this->settingModel->updateSetting('website_name', $this->request->getPost('website_name'));
-            $this->settingModel->updateSetting('contact_email', $this->request->getPost('contact_email'));
-            $this->settingModel->updateSetting('contact_phone', $this->request->getPost('contact_phone'));
+            $this->settingModel->setSetting('website_name', $this->request->getPost('website_name'));
+            $this->settingModel->setSetting('contact_email', $this->request->getPost('contact_email'));
+            $this->settingModel->setSetting('contact_phone', $this->request->getPost('contact_phone'));
 
             // Referral System Settings
-            $this->settingModel->updateSetting('referral_bonus_percentage', $this->request->getPost('referral_bonus_percentage'));
+            $this->settingModel->setSetting('referral_bonus_percentage', $this->request->getPost('referral_bonus_percentage'));
+            $this->settingModel->setSetting('special_user_commission', $this->request->getPost('special_user_commission'));
 
-            // User Transfer Settings
-            $this->settingModel->updateSetting('user_transfer_enabled', $this->request->getPost('user_transfer_enabled') ? '1' : '0');
-            $this->settingModel->updateSetting('transfer_fee_percentage', $this->request->getPost('transfer_fee_percentage'));
-            $this->settingModel->updateSetting('min_transfer_amount', $this->request->getPost('min_transfer_amount'));
-            $this->settingModel->updateSetting('max_transfer_amount', $this->request->getPost('max_transfer_amount'));
+
 
             // Handle file uploads
             $this->handleSettingsFileUploads();
@@ -2796,7 +3011,7 @@ class Admin extends BaseController
         if ($websiteLogo && $websiteLogo->isValid() && !$websiteLogo->hasMoved()) {
             $newName = 'logo_' . time() . '.' . $websiteLogo->getExtension();
             $websiteLogo->move($uploadPath, $newName);
-            $this->settingModel->updateSetting('website_logo', $newName);
+            $this->settingModel->setSetting('website_logo', $newName);
         }
 
         // Handle favicon upload
@@ -2804,7 +3019,7 @@ class Admin extends BaseController
         if ($favicon && $favicon->isValid() && !$favicon->hasMoved()) {
             $newName = 'favicon_' . time() . '.' . $favicon->getExtension();
             $favicon->move($uploadPath, $newName);
-            $this->settingModel->updateSetting('favicon', $newName);
+            $this->settingModel->setSetting('favicon', $newName);
         }
     }
 
@@ -2907,5 +3122,53 @@ class Admin extends BaseController
         }
 
         return redirect()->back()->with('success', 'Special user status has been removed successfully.');
+    }
+
+    /**
+     * Get header notifications for dropdown (AJAX)
+     */
+    public function getHeaderNotifications()
+    {
+        if (!session()->get('is_admin')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized']);
+        }
+
+        $limit = (int)($this->request->getGet('limit') ?? 10);
+        $unreadOnly = $this->request->getGet('unread_only') === 'true';
+
+        // Get notifications directly from database
+        $db = \Config\Database::connect();
+        $builder = $db->table('notifications')
+            ->select('notifications.*, u.username, u.full_name, u.email')
+            ->join('users u', 'u.id = notifications.user_id', 'left')
+            ->where('notifications.admin_id IS NULL'); // Admin notifications
+
+        if ($unreadOnly) {
+            $builder->where('notifications.is_read', false);
+        }
+
+        $notifications = $builder->orderBy('notifications.created_at', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+
+        // Get unread count
+        $unreadCount = $db->table('notifications')
+            ->where('admin_id IS NULL')
+            ->where('is_read', false)
+            ->countAllResults();
+
+        // Add styling information
+        foreach ($notifications as &$notification) {
+            $notification['style'] = $this->notificationService->getNotificationStyle($notification['type']);
+            $notification['priority_style'] = $this->notificationService->getPriorityStyle($notification['priority']);
+            $notification['time_ago'] = $this->timeAgo($notification['created_at']);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount
+        ]);
     }
 }

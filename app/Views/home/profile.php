@@ -45,13 +45,32 @@
                 </div>
                 <div class="p-6">
                     <form action="<?= base_url('update-profile') ?>" method="POST" enctype="multipart/form-data">
+                        <?= csrf_field() ?>
+
                         <!-- Profile Image -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
                             <div class="flex items-center space-x-4">
                                 <div class="flex-shrink-0">
                                     <?php if ($user['profile_image']): ?>
-                                        <img class="h-20 w-20 rounded-full object-cover" src="<?= base_url($user['profile_image']) ?>" alt="Profile">
+                                        <?php
+                                        // Handle both full path and filename cases
+                                        $imagePath = $user['profile_image'];
+                                        if (strpos($imagePath, 'uploads/') === 0) {
+                                            // Already has uploads/ prefix
+                                            $imageSrc = base_url($imagePath);
+                                        } else {
+                                            // Just filename, add uploads/profiles/ prefix
+                                            $imageSrc = base_url('uploads/profiles/' . $imagePath);
+                                        }
+                                        ?>
+                                        <img class="h-20 w-20 rounded-full object-cover"
+                                            src="<?= $imageSrc ?>"
+                                            alt="Profile"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center" style="display: none;">
+                                            <i class="fas fa-user text-blue-600 text-2xl"></i>
+                                        </div>
                                     <?php else: ?>
                                         <div class="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center">
                                             <i class="fas fa-user text-blue-600 text-2xl"></i>
@@ -60,7 +79,7 @@
                                 </div>
                                 <div>
                                     <input type="file" name="profile_image" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                                    <p class="text-xs text-gray-500 mt-1">JPG, PNG or GIF. Max 2MB.</p>
+                                    <p class="text-xs text-gray-500 mt-1">JPG, PNG or GIF. Max 5MB.</p>
                                 </div>
                             </div>
                         </div>
@@ -342,20 +361,20 @@
     }
 
     // Copy referral link to clipboard
-function copyReferralLink() {
-    const referralLink = document.getElementById('referralLink').value;
-    if (referralLink) {
-        copyToClipboard(referralLink, 'referralLinkBtn');
+    function copyReferralLink() {
+        const referralLink = document.getElementById('referralLink').value;
+        if (referralLink) {
+            copyToClipboard(referralLink, 'referralLinkBtn');
+        }
     }
-}
 
-// Copy wallet ID to clipboard
-function copyWalletId() {
-    const walletId = '<?= esc($user['wallet_id'] ?? '') ?>';
-    if (walletId && walletId !== 'Not Generated') {
-        copyToClipboard(walletId, 'walletIdBtn');
+    // Copy wallet ID to clipboard
+    function copyWalletId() {
+        const walletId = '<?= esc($user['wallet_id'] ?? '') ?>';
+        if (walletId && walletId !== 'Not Generated') {
+            copyToClipboard(walletId, 'walletIdBtn');
+        }
     }
-}
 
     // Universal copy to clipboard function that works in all browsers
     function copyToClipboard(text, buttonId) {
@@ -458,25 +477,25 @@ function copyWalletId() {
     }
 
     // Select referral link text
-function selectReferralLink(input) {
-    input.select();
-    input.setSelectionRange(0, input.value.length);
-    
-    // Show a brief message
-    showSelectionMessage('Referral link selected!');
-}
+    function selectReferralLink(input) {
+        input.select();
+        input.setSelectionRange(0, input.value.length);
 
-// Select wallet ID text
-function selectWalletId(element) {
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    
-    // Show a brief message
-    showSelectionMessage('Wallet ID selected!');
-}
+        // Show a brief message
+        showSelectionMessage('Referral link selected!');
+    }
+
+    // Select wallet ID text
+    function selectWalletId(element) {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        // Show a brief message
+        showSelectionMessage('Wallet ID selected!');
+    }
 
     // Show selection message
     function showSelectionMessage(message) {
@@ -491,5 +510,37 @@ function selectWalletId(element) {
             document.body.removeChild(messageDiv);
         }, 2000);
     }
+
+    // Image preview functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.querySelector('input[name="profile_image"]');
+        const profileImage = document.querySelector('.flex-shrink-0 img');
+        const defaultIcon = document.querySelector('.flex-shrink-0 .bg-blue-100');
+
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                        alert('File size must be less than 5MB');
+                        this.value = '';
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if (profileImage) {
+                            profileImage.src = e.target.result;
+                            profileImage.style.display = 'block';
+                        }
+                        if (defaultIcon) {
+                            defaultIcon.style.display = 'none';
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
 </script>
 <?= $this->endSection() ?>

@@ -23,6 +23,7 @@
                         <option value="">All Types</option>
                         <option value="topup">Topups</option>
                         <option value="deduction">Deductions</option>
+                        <option value="commission">Commissions</option>
                         <option value="draw_entry">Draw Entries</option>
                         <option value="draw_win">Winnings</option>
                         <option value="withdrawal">Withdrawals</option>
@@ -117,13 +118,56 @@
                                     <?php if ($metadata && !empty($metadata)): ?>
                                         <div class="mt-4 pt-4 border-t border-gray-200">
                                             <div class="flex flex-wrap gap-2">
-                                                <?php foreach ($metadata as $key => $value): ?>
-                                                    <?php if ($key !== 'timestamp'): ?>
-                                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
-                                                            <?= ucfirst(str_replace('_', ' ', $key)) ?>: <?= esc($value) ?>
-                                                        </span>
-                                                    <?php endif; ?>
-                                                <?php endforeach; ?>
+                                                <?php if ($transaction['type'] === 'commission' && isset($metadata['topup_request_id'])): ?>
+                                                    <!-- Special display for commission transactions -->
+                                                    <div class="w-full bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                                        <div class="flex items-center mb-2">
+                                                            <i class="fas fa-gift text-yellow-600 mr-2"></i>
+                                                            <span class="text-sm font-medium text-yellow-800">Commission Details</span>
+                                                        </div>
+                                                        <div class="grid grid-cols-2 gap-2 text-xs">
+                                                            <span class="text-yellow-700">Top-up Request:</span>
+                                                            <span class="font-medium">#<?= $metadata['topup_request_id'] ?></span>
+                                                            <?php if (isset($metadata['normal_user_id'])): ?>
+                                                                <span class="text-yellow-700">User ID:</span>
+                                                                <span class="font-medium"><?= $metadata['normal_user_id'] ?></span>
+                                                            <?php endif; ?>
+                                                            <?php if (isset($metadata['commission_percentage'])): ?>
+                                                                <span class="text-yellow-700">Commission Rate:</span>
+                                                                <span class="font-medium"><?= $metadata['commission_percentage'] ?>%</span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php elseif ($transaction['type'] === 'deduction' && isset($metadata['topup_request_id'])): ?>
+                                                    <!-- Special display for deduction transactions (payments to normal users) -->
+                                                    <div class="w-full bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                                        <div class="flex items-center mb-2">
+                                                            <i class="fas fa-user text-blue-600 mr-2"></i>
+                                                            <span class="text-sm font-medium text-blue-800">Payment to User</span>
+                                                        </div>
+                                                        <div class="grid grid-cols-2 gap-2 text-xs">
+                                                            <span class="text-blue-700">Top-up Request:</span>
+                                                            <span class="font-medium">#<?= $metadata['topup_request_id'] ?></span>
+                                                            <?php if (isset($metadata['normal_user_id'])): ?>
+                                                                <span class="text-blue-700">User ID:</span>
+                                                                <span class="font-medium"><?= $metadata['normal_user_id'] ?></span>
+                                                            <?php endif; ?>
+                                                            <?php if (isset($metadata['commission_earned'])): ?>
+                                                                <span class="text-blue-700">Commission Earned:</span>
+                                                                <span class="font-medium">Rs. <?= number_format($metadata['commission_earned'], 2) ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <!-- Regular metadata display for other transaction types -->
+                                                    <?php foreach ($metadata as $key => $value): ?>
+                                                        <?php if ($key !== 'timestamp'): ?>
+                                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+                                                                <?= ucfirst(str_replace('_', ' ', $key)) ?>: <?= esc($value) ?>
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     <?php endif; ?>
@@ -167,7 +211,7 @@
         </div>
 
         <!-- Transaction Summary -->
-        <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-5 gap-6">
             <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
                 <div class="flex items-center">
                     <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -227,6 +271,22 @@
                     </div>
                 </div>
             </div>
+
+            <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-gift text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Commissions</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            Rs. <?= number_format(array_sum(array_map(function ($t) {
+                                    return $t['type'] === 'commission' && $t['status'] === 'completed' ? $t['amount'] : 0;
+                                }, $transactions)), 2) ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -274,6 +334,8 @@ function getTransactionIcon($type)
         case 'deduction':
         case 'draw_entry':
             return 'fa-minus';
+        case 'commission':
+            return 'fa-gift';
         case 'draw_win':
             return 'fa-trophy';
         case 'withdrawal':

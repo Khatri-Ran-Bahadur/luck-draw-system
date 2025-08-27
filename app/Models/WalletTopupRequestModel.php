@@ -41,14 +41,52 @@ class WalletTopupRequestModel extends Model
     ];
 
     /**
+     * Get pending topup requests for a specific special user to approve
+     */
+    public function getRequestsForSpecialUser($specialUserId, $limit = null)
+    {
+        $builder = $this->db->table('wallet_topup_requests wtr')
+            ->select('wtr.*, u.username, u.email, u.full_name')
+            ->join('users u', 'u.id = wtr.user_id')
+            ->where('wtr.special_user_id', $specialUserId)
+            ->where('wtr.status', 'pending')
+            ->orderBy('wtr.created_at', 'DESC');
+
+        if ($limit) {
+            $builder->limit($limit);
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
      * Get pending topup requests for admin review
      */
     public function getPendingRequests($limit = null)
     {
         $builder = $this->db->table('wallet_topup_requests wtr')
-            ->select('wtr.*, u.username, u.email')
+            ->select('wtr.*, u.username, u.email, u.full_name')
             ->join('users u', 'u.id = wtr.user_id')
             ->where('wtr.status', 'pending')
+            ->orderBy('wtr.created_at', 'DESC');
+
+        if ($limit) {
+            $builder->limit($limit);
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Get pending top-up requests from special users only (for admin)
+     */
+    public function getPendingSpecialUserRequests($limit = null)
+    {
+        $builder = $this->db->table('wallet_topup_requests wtr')
+            ->select('wtr.*, u.username, u.email, u.full_name')
+            ->join('users u', 'u.id = wtr.user_id')
+            ->where('wtr.status', 'pending')
+            ->where('u.is_special_user', true)
             ->orderBy('wtr.created_at', 'DESC');
 
         if ($limit) {
@@ -170,6 +208,52 @@ class WalletTopupRequestModel extends Model
         return $stats;
     }
 
+    /**
+     * Get topup statistics for special users only
+     */
+    public function getSpecialUserTopupStats()
+    {
+        $totalRequests = $this->db->table('wallet_topup_requests wtr')
+            ->join('users u', 'u.id = wtr.user_id')
+            ->where('u.is_special_user', true)
+            ->countAllResults();
+        
+        $pendingRequests = $this->db->table('wallet_topup_requests wtr')
+            ->join('users u', 'u.id = wtr.user_id')
+            ->where('wtr.status', 'pending')
+            ->where('u.is_special_user', true)
+            ->countAllResults();
+        
+        $approvedRequests = $this->db->table('wallet_topup_requests wtr')
+            ->join('users u', 'u.id = wtr.user_id')
+            ->where('wtr.status', 'approved')
+            ->where('u.is_special_user', true)
+            ->countAllResults();
+        
+        $rejectedRequests = $this->db->table('wallet_topup_requests wtr')
+            ->join('users u', 'u.id = wtr.user_id')
+            ->where('wtr.status', 'rejected')
+            ->where('u.is_special_user', true)
+            ->countAllResults();
+
+        $totalAmountPending = $this->db->table('wallet_topup_requests wtr')
+            ->select('COALESCE(SUM(wtr.amount), 0) as total')
+            ->join('users u', 'u.id = wtr.user_id')
+            ->where('wtr.status', 'pending')
+            ->where('u.is_special_user', true)
+            ->get()
+            ->getRow()
+            ->total;
+
+        return [
+            'total_requests' => $totalRequests,
+            'pending_requests' => $pendingRequests,
+            'approved_requests' => $approvedRequests,
+            'rejected_requests' => $rejectedRequests,
+            'total_amount_pending' => $totalAmountPending
+        ];
+    }
+
     // Get recent top-up requests for admin dashboard
     public function getRecentRequests($limit = 5)
     {
@@ -178,5 +262,178 @@ class WalletTopupRequestModel extends Model
             ->orderBy('wallet_topup_requests.created_at', 'DESC')
             ->limit($limit)
             ->findAll();
+    }
+
+    /**
+     * Get pending topup requests for a specific special user
+     */
+    public function getPendingRequestsForSpecialUser($specialUserId, $limit = null)
+    {
+        $builder = $this->db->table('wallet_topup_requests wtr')
+            ->select('wtr.*, u.username, u.email, u.full_name')
+            ->join('users u', 'u.id = wtr.user_id')
+            ->where('wtr.special_user_id', $specialUserId)
+            ->where('wtr.status', 'pending')
+            ->orderBy('wtr.created_at', 'DESC');
+
+        if ($limit) {
+            $builder->limit($limit);
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Special user approves topup request after confirming payment
+     */
+    public function approveBySpecialUser($requestId, $specialUserId, $notes = null)
+    {
+        $request = $this->find($requestId);
+        if (!$request || $request['status'] !== 'pending' || $request['special_user_id'] != $specialUserId) {
+            return false;
+        }
+
+        // Get commission percentage from settings (default 5%)
+        $settingModel = new \App\Models\SettingModel();
+        $commissionPercentage = $settingModel->getSpecialUserCommission() ?? 5.0;
+        $commissionAmount = ($request['amount'] * $commissionPercentage) / 100;
+        $netAmount = $request['amount'] - $commissionAmount;
+
+        // Update request status
+        $this->update($requestId, [
+            'status' => 'approved',
+            'special_user_notes' => $notes,
+            'special_user_processed_at' => date('Y-m-d H:i:s')
+        ]);
+
+        // Add money to normal user's wallet
+        $walletModel = new WalletModel();
+        $walletModel->addMoney($request['user_id'], $request['amount'], 'topup_approved_by_special_user');
+
+        // Get current wallet balances for accurate transaction records
+        $specialUserWallet = $walletModel->getUserWallet($specialUserId);
+        $normalUserWallet = $walletModel->getUserWallet($request['user_id']);
+        
+        if (!$specialUserWallet || !$normalUserWallet) {
+            return false;
+        }
+
+        // Store original balances for transaction records
+        $specialUserBalanceBefore = $specialUserWallet['balance'];
+        $normalUserBalanceBefore = $normalUserWallet['balance'];
+
+        // Add money to normal user's wallet
+        $walletModel->addMoney($request['user_id'], $request['amount'], 'topup_approved_by_special_user');
+
+        // Deduct money from special user's wallet (net amount after commission)
+        $walletModel->deductMoney($specialUserId, $netAmount, 'topup_payment_to_normal_user');
+
+        // Get updated balances after wallet operations
+        $specialUserWallet = $walletModel->getUserWallet($specialUserId);
+        $normalUserWallet = $walletModel->getUserWallet($request['user_id']);
+
+        // Create wallet transaction for normal user
+        $transactionModel = new WalletTransactionModel();
+        $transactionModel->insert([
+            'wallet_id' => $normalUserWallet['id'],
+            'type' => 'topup',
+            'amount' => $request['amount'],
+            'balance_before' => $normalUserBalanceBefore,
+            'balance_after' => $normalUserWallet['balance'],
+            'status' => 'completed',
+            'description' => 'Top-up approved by special user - Rs. ' . number_format($request['amount'], 2),
+            'payment_method' => $request['payment_method'],
+            'payment_reference' => 'TOPUP-SPECIAL-' . $requestId,
+            'metadata' => json_encode([
+                'topup_request_id' => $requestId,
+                'approved_by_special_user' => $specialUserId,
+                'notes' => $notes
+            ])
+        ]);
+
+        // Create wallet transaction for special user (deduction - NEGATIVE amount)
+        $transactionModel->insert([
+            'wallet_id' => $specialUserWallet['id'],
+            'type' => 'deduction',
+            'amount' => -$netAmount, // NEGATIVE amount for deduction
+            'balance_before' => $specialUserBalanceBefore,
+            'balance_after' => $specialUserWallet['balance'],
+            'status' => 'completed',
+            'description' => 'Payment to normal user topup - Rs. ' . number_format($netAmount, 2),
+            'payment_method' => 'wallet_transfer',
+            'payment_reference' => 'PAYMENT-' . $requestId,
+            'metadata' => json_encode([
+                'topup_request_id' => $requestId,
+                'normal_user_id' => $request['user_id'],
+                'commission_earned' => $commissionAmount,
+                'notes' => $notes
+            ])
+        ]);
+
+        // Add commission to special user's wallet
+        if ($commissionAmount > 0) {
+            $walletModel->addMoney($specialUserId, $commissionAmount, 'commission_earned');
+            
+            // Get final balance after commission
+            $finalSpecialUserWallet = $walletModel->getUserWallet($specialUserId);
+            
+            // Create commission transaction
+            $transactionModel->insert([
+                'wallet_id' => $specialUserWallet['id'],
+                'type' => 'commission',
+                'amount' => $commissionAmount,
+                'balance_before' => $specialUserWallet['balance'],
+                'balance_after' => $finalSpecialUserWallet['balance'],
+                'status' => 'completed',
+                'description' => 'Commission earned from topup approval - Rs. ' . number_format($commissionAmount, 2),
+                'payment_method' => 'commission',
+                'payment_reference' => 'COMMISSION-' . $requestId,
+                'metadata' => json_encode([
+                    'topup_request_id' => $requestId,
+                    'normal_user_id' => $request['user_id'],
+                    'commission_percentage' => $commissionPercentage,
+                    'notes' => $notes
+                ])
+            ]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Special user rejects topup request
+     */
+    public function rejectBySpecialUser($requestId, $specialUserId, $notes = null)
+    {
+        $request = $this->find($requestId);
+        if (!$request || $request['status'] !== 'pending' || $request['special_user_id'] != $specialUserId) {
+            return false;
+        }
+
+        return $this->update($requestId, [
+            'status' => 'rejected',
+            'special_user_notes' => $notes,
+            'special_user_processed_at' => date('Y-m-d H:i:s')
+        ]);
+    }
+
+    /**
+     * Create topup request for special user self-topup (admin approval required)
+     */
+    public function createSpecialUserTopupRequest($specialUserId, $amount, $paymentMethod, $paymentProof, $notes = null)
+    {
+        $data = [
+            'user_id' => $specialUserId,
+            'special_user_id' => null, // No special user for self-topup
+            'amount' => $amount,
+            'payment_method' => $paymentMethod,
+            'payment_proof' => $paymentProof,
+            'status' => 'pending',
+            'admin_notes' => $notes,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        return $this->insert($data);
     }
 }

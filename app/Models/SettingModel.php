@@ -110,11 +110,11 @@ class SettingModel extends Model
     {
         $settings = $this->findAll();
         $result = [];
-        
+
         foreach ($settings as $setting) {
             $result[$setting['key']] = $setting['value'];
         }
-        
+
         return $result;
     }
 
@@ -157,6 +157,17 @@ class SettingModel extends Model
     public function setMaxReferralsPerUser($count)
     {
         return $this->setSetting('max_referrals_per_user', $count, 'Maximum referrals allowed per user (0 = unlimited)');
+    }
+
+    // Special User Commission Settings
+    public function getSpecialUserCommission()
+    {
+        return (float) $this->getSetting('special_user_commission', 5.0);
+    }
+
+    public function setSpecialUserCommission($percentage)
+    {
+        return $this->setSetting('special_user_commission', $percentage, 'Commission percentage for special users on topup approvals');
     }
 
     // Payment method settings

@@ -74,18 +74,21 @@ $routes->get('draw/(:any)/(:num)', 'LuckyDraw::viewDraw/$1/$2');
 $routes->get('wallet', 'Wallet::index');
 $routes->get('wallet/topup', 'Wallet::topup');
 $routes->post('wallet/topup', 'Wallet::topup');
-$routes->get('wallet/manual-topup', 'Wallet::manualTopup');
-$routes->post('wallet/manual-topup', 'Wallet::manualTopup');
-$routes->post('wallet/manual-topup/submit', 'Wallet::submitManualTopup');
-$routes->get('wallet/transfer', 'Wallet::transfer');
-$routes->post('wallet/transfer', 'Wallet::transfer');
+
 $routes->get('wallet/withdraw', 'Wallet::withdraw');
 $routes->post('wallet/withdraw', 'Wallet::withdraw');
+
+// Special user topup approval routes
+$routes->get('wallet/approve-topup/(:num)', 'Wallet::approveTopupRequest/$1');
+$routes->post('wallet/approve-topup/(:num)', 'Wallet::approveTopupRequest/$1');
+$routes->get('wallet/reject-topup/(:num)', 'Wallet::rejectTopupRequest/$1');
+$routes->post('wallet/reject-topup/(:num)', 'Wallet::rejectTopupRequest/$1');
 $routes->get('wallet/profile', 'Wallet::profile');
 $routes->post('wallet/update-profile', 'Wallet::updateProfile');
 $routes->post('wallet/update-wallet', 'Wallet::updateWallet');
-$routes->get('wallet/user-requests', 'Wallet::userRequests');
+
 $routes->get('wallet/transactions', 'Wallet::transactions');
+$routes->get('wallet/user-requests', 'Wallet::userRequests');
 
 // PayPal payment routes
 $routes->get('wallet/paypal/process', 'Wallet::paypalProcess');
@@ -114,18 +117,25 @@ $routes->get('payment/verify/(:num)', 'Payment::verifyPayment/$1');
 // Easypaisa Payment Gateway (Wallet Topup Only)
 $routes->get('easypaisa/complete', 'Easypaisa::complete');
 
+// Smart dashboard route - redirects based on user role
+$routes->get('dashboard', 'Home::smartDashboard');
+
 // User dashboard
-$routes->get('dashboard', 'Home::dashboard');
+$routes->get('user-dashboard', 'Home::dashboard');
 $routes->get('profile', 'Home::profile');
 $routes->post('update-profile', 'Home::updateProfile');
 $routes->post('update-wallet', 'Home::updateWallet');
 
 // Admin routes
 $routes->group('admin', ['filter' => 'admin'], function ($routes) {
-    $routes->get('dashboard', 'Admin::dashboard');
+    $routes->get('dashboard', 'Admin::index');
     $routes->get('profile', 'Admin::profile');
     $routes->post('update-profile', 'Admin::updateProfile');
     $routes->post('change-password', 'Admin::changePassword');
+
+    // Admin wallet management
+    $routes->get('admin-wallet-info', 'Admin::adminWalletInfo');
+    $routes->post('admin-wallet-info', 'Admin::adminWalletInfo');
     $routes->get('application-settings', 'Admin::applicationSettings');
     $routes->post('save-application-settings', 'Admin::saveSettings');
 
@@ -157,6 +167,7 @@ $routes->group('admin', ['filter' => 'admin'], function ($routes) {
     $routes->get('transaction-details/(:num)', 'Admin::transactionDetails/$1');
 
     $routes->get('notifications', 'Admin::notifications');
+    $routes->get('header-notifications', 'Admin::getHeaderNotifications');
 
     // Cash Draws Management
     $routes->get('cash-draws', 'Admin::cashDraws');
@@ -194,8 +205,8 @@ $routes->group('admin', ['filter' => 'admin'], function ($routes) {
     $routes->post('approve-withdrawal/(:num)', 'Admin::approveWithdrawal/$1');
     $routes->post('reject-withdrawal/(:num)', 'Admin::rejectWithdrawal/$1');
 
-    $routes->get('settings', 'Admin::settings');
-    $routes->post('settings', 'Admin::settings');
+    $routes->get('settings', 'Admin::applicationSettings');
+    $routes->post('settings', 'Admin::applicationSettings');
 
     // Referral Management
     $routes->get('referrals', 'Admin::referrals');
@@ -206,7 +217,9 @@ $routes->group('admin', ['filter' => 'admin'], function ($routes) {
 
     // Wallet top-up management
     $routes->get('topup-requests', 'Admin::topupRequests');
+    $routes->get('approve-topup-request/(:num)', 'Admin::approveTopupRequest/$1');
     $routes->post('approve-topup-request/(:num)', 'Admin::approveTopupRequest/$1');
+    $routes->get('reject-topup-request/(:num)', 'Admin::rejectTopupRequest/$1');
     $routes->post('reject-topup-request/(:num)', 'Admin::rejectTopupRequest/$1');
 
     // User transfer management

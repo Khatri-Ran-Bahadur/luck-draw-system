@@ -291,13 +291,14 @@ class UserModel extends Model
     /**
      * Update special user wallet information
      */
-    public function updateSpecialUserWallet($userId, $walletName, $walletNumber, $walletType, $bankName = null, $isActive = true)
+    public function updateSpecialUserWallet($userId, $walletName, $walletNumber, $walletType, $bankName = null, $walletActive = true, $userStatus = 'active')
     {
         $data = [
             'wallet_name' => $walletName,
             'wallet_number' => $walletNumber,
             'wallet_type' => $walletType,
-            'wallet_active' => $isActive,
+            'wallet_active' => $walletActive,
+            'status' => $userStatus,
             'is_special_user' => true
         ];
 
@@ -388,18 +389,44 @@ class UserModel extends Model
      */
     public function getUsersWithCompleteWalletDetails($limit = 10, $offset = 0)
     {
-        return $this->select('users.*, COALESCE(wallets.balance, 0) as balance')
-             ->join('wallets', 'wallets.user_id = users.id', 'left')
-             ->where('users.wallet_name IS NOT NULL')
-             ->where('users.wallet_name !=', '')
-             ->where('users.wallet_number IS NOT NULL')
-             ->where('users.wallet_number !=', '')
-             ->where('users.wallet_type IS NOT NULL')
-             ->where('users.is_special_user', true)
-             ->where('users.wallet_active', true)
-             ->orderBy('RAND()')
-             ->limit($limit, $offset)
-             ->findAll();
+        // Use Query Builder directly for better control and debugging
+        $builder = $this->db->table('users')
+            ->select('users.*, COALESCE(wallets.balance, 0) as balance')
+            ->join('wallets', 'wallets.user_id = users.id', 'left')
+            ->where('users.wallet_name IS NOT NULL')
+            ->where('users.wallet_name !=', '')
+            ->where('users.wallet_name !=', 'N/A')
+            ->where('users.wallet_name !=', 'Pending')
+            ->where('users.wallet_name !=', 'pending')
+            ->where('LENGTH(TRIM(users.wallet_name)) >', 2)
+            ->where('users.wallet_number IS NOT NULL')
+            ->where('users.wallet_number !=', '')
+            ->where('users.wallet_number !=', 'N/A')
+            ->where('users.wallet_number !=', 'Pending')
+            ->where('users.wallet_number !=', 'pending')
+            ->where('LENGTH(TRIM(users.wallet_number)) >', 2)
+            ->where('users.wallet_type IS NOT NULL')
+            ->where('users.wallet_type !=', '')
+            ->where('users.wallet_type !=', 'N/A')
+            ->where('users.wallet_type !=', 'Pending')
+            ->where('users.wallet_type !=', 'pending')
+            ->whereIn('users.wallet_type', ['easypaisa', 'jazz_cash', 'bank', 'hbl', 'ubank', 'abank', 'nbp', 'sbank', 'citi', 'hsbc', 'payoneer', 'skrill', 'neteller', 'other'])
+            ->where('users.is_special_user', true)
+            ->where('users.wallet_active', true)
+            ->where('users.status', 'active')
+            ->orderBy('RAND()')
+            ->limit($limit, $offset);
+
+        // Debug: Log the SQL query
+        log_message('info', 'Special users query: ' . $builder->getCompiledSelect());
+
+        $result = $builder->get()->getResultArray();
+
+        // Debug: Log the result
+        log_message('info', 'Special users result count: ' . count($result));
+        log_message('info', 'Special users result: ' . json_encode($result));
+
+        return $result;
     }
 
     /**
@@ -408,13 +435,27 @@ class UserModel extends Model
     public function countUsersWithCompleteWalletDetails()
     {
         return $this->where('wallet_name IS NOT NULL')
-             ->where('wallet_name !=', '')
-             ->where('users.wallet_number IS NOT NULL')
-             ->where('users.wallet_number !=', '')
-             ->where('users.wallet_type IS NOT NULL')
-             ->where('is_special_user', true)
-             ->where('wallet_active', true)
-             ->countAllResults();
+            ->where('wallet_name !=', '')
+            ->where('wallet_name !=', 'N/A')
+            ->where('wallet_name !=', 'Pending')
+            ->where('wallet_name !=', 'pending')
+            ->where('LENGTH(TRIM(wallet_name)) >', 2)
+            ->where('users.wallet_number IS NOT NULL')
+            ->where('users.wallet_number !=', '')
+            ->where('users.wallet_number !=', 'N/A')
+            ->where('users.wallet_number !=', 'Pending')
+            ->where('users.wallet_number !=', 'pending')
+            ->where('LENGTH(TRIM(users.wallet_number)) >', 2)
+            ->where('users.wallet_type IS NOT NULL')
+            ->where('users.wallet_type !=', '')
+            ->where('users.wallet_type !=', 'N/A')
+            ->where('users.wallet_type !=', 'Pending')
+            ->where('users.wallet_type !=', 'pending')
+            ->whereIn('users.wallet_type', ['easypaisa', 'jazz_cash', 'bank', 'hbl', 'ubank', 'abank', 'nbp', 'sbank', 'citi', 'hsbc', 'payoneer', 'skrill', 'neteller', 'other'])
+            ->where('is_special_user', true)
+            ->where('wallet_active', true)
+            ->where('status', 'active')
+            ->countAllResults();
     }
 
     /**

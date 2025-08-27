@@ -52,19 +52,7 @@
                     </div>
                 </a>
 
-                <?php if ($user['is_special_user'] ?? false): ?>
-                    <a href="<?= base_url('wallet/transfer') ?>" class="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl shadow-lg p-6 text-white hover:from-green-700 hover:to-green-800 transition-all duration-300 transform hover:scale-105">
-                        <div class="flex items-center">
-                            <div class="bg-white bg-opacity-20 rounded-full p-3 mr-4">
-                                <i class="fas fa-exchange-alt text-2xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold">Send Money</h3>
-                                <p class="text-green-100 text-sm">Transfer to other users</p>
-                            </div>
-                        </div>
-                    </a>
-                <?php endif; ?>
+
 
                 <a href="<?= base_url('wallet/withdraw') ?>" class="bg-gradient-to-r from-purple-600 to-purple-700 rounded-2xl shadow-lg p-6 text-white hover:from-purple-700 hover:to-purple-800 transition-all duration-300 transform hover:scale-105">
                     <div class="flex items-center">
@@ -147,20 +135,20 @@
                             </a>
                         </div>
 
-                        <!-- Transfer Balance -->
+                        <!-- Topup Requests -->
                         <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
                             <div class="flex items-center justify-between mb-3">
                                 <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                                    <i class="fas fa-exchange-alt text-green-600 text-xl"></i>
+                                    <i class="fas fa-upload text-green-600 text-xl"></i>
                                 </div>
                                 <span class="text-2xl font-bold text-green-600">
-                                    <i class="fas fa-infinity text-lg"></i>
+                                    <?= count($pendingTopups) ?>
                                 </span>
                             </div>
-                            <h4 class="font-semibold text-green-900 mb-1">Transfer Balance</h4>
-                            <p class="text-sm text-green-700">Send money to users</p>
-                            <a href="<?= base_url('wallet/transfer') ?>" class="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium mt-2">
-                                Transfer Now <i class="fas fa-arrow-right ml-1"></i>
+                            <h4 class="font-semibold text-green-900 mb-1">Topup Requests</h4>
+                            <p class="text-sm text-green-700">Approve user topups</p>
+                            <a href="<?= base_url('wallet/user-requests') ?>" class="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium mt-2">
+                                View Requests <i class="fas fa-arrow-right ml-1"></i>
                             </a>
                         </div>
 
@@ -206,8 +194,8 @@
                         <?php foreach ($recentTransactions as $transaction): ?>
                             <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                                 <div class="flex items-center space-x-4">
-                                    <div class="w-10 h-10 <?= $transaction['type'] === 'topup' ? 'bg-green-100' : ($transaction['type'] === 'withdrawal' ? 'bg-red-100' : 'bg-blue-100') ?> rounded-full flex items-center justify-center">
-                                        <i class="fas <?= $transaction['type'] === 'topup' ? 'fa-plus text-green-600' : ($transaction['type'] === 'withdrawal' ? 'fa-minus text-red-600' : 'fa-exchange-alt text-blue-600') ?> text-sm"></i>
+                                    <div class="w-10 h-10 <?= $transaction['type'] === 'topup' ? 'bg-green-100' : ($transaction['type'] === 'withdrawal' ? 'bg-red-100' : ($transaction['type'] === 'commission' ? 'bg-yellow-100' : 'bg-blue-100')) ?> rounded-full flex items-center justify-center">
+                                        <i class="fas <?= $transaction['type'] === 'topup' ? 'fa-plus text-green-600' : ($transaction['type'] === 'withdrawal' ? 'fa-minus text-red-600' : ($transaction['type'] === 'commission' ? 'fa-gift text-yellow-600' : 'fa-exchange-alt text-blue-600')) ?> text-sm"></i>
                                     </div>
                                     <div>
                                         <h4 class="text-sm font-medium text-gray-900"><?= esc($transaction['description']) ?></h4>
@@ -257,7 +245,7 @@
             <?php endif; ?>
 
             <!-- Quick Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
                 <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
                     <div class="flex items-center">
                         <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -298,6 +286,22 @@
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Total Transactions</p>
                             <p class="text-2xl font-bold text-gray-900"><?= count($recentTransactions) ?></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-gift text-yellow-600 text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Commissions</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                Rs. <?= number_format(array_sum(array_map(function ($t) {
+                                        return $t['type'] === 'commission' && $t['status'] === 'completed' ? $t['amount'] : 0;
+                                    }, $recentTransactions)), 2) ?>
+                            </p>
                         </div>
                     </div>
                 </div>

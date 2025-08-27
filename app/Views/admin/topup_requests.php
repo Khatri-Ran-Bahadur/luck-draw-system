@@ -9,8 +9,8 @@
                 <i class="fas fa-wallet text-3xl"></i>
             </div>
             <div>
-                <h1 class="text-3xl font-bold">Wallet Top-up Requests</h1>
-                <p class="text-green-100 text-lg mt-1">Manage user wallet top-up requests</p>
+                <h1 class="text-3xl font-bold">Special User Top-up Requests</h1>
+                <p class="text-green-100 text-lg mt-1">Manage top-up requests from special users only</p>
             </div>
         </div>
     </div>
@@ -69,8 +69,8 @@
     <!-- Top-up Requests Table -->
     <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-900">Pending Top-up Requests</h2>
-            <p class="text-gray-600 mt-1">Review and approve user top-up requests</p>
+            <h2 class="text-xl font-semibold text-gray-900">Pending Special User Top-up Requests</h2>
+            <p class="text-gray-600 mt-1">Review and approve top-up requests from special users only</p>
         </div>
 
         <?php if (empty($requests)): ?>
@@ -78,8 +78,8 @@
                 <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-check text-gray-400 text-2xl"></i>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">No Pending Requests</h3>
-                <p class="text-gray-500">All top-up requests have been processed.</p>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No Pending Special User Requests</h3>
+                <p class="text-gray-500">All special user top-up requests have been processed.</p>
             </div>
         <?php else: ?>
             <div class="overflow-x-auto">
@@ -105,8 +105,8 @@
                                             </div>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900"><?= $request['full_name'] ?></div>
-                                            <div class="text-sm text-gray-500">@<?= $request['username'] ?></div>
+                                            <div class="text-sm font-medium text-gray-900"><?= $request['full_name'] ?? 'N/A' ?></div>
+                                            <div class="text-sm text-gray-500">@<?= $request['username'] ?? 'unknown' ?></div>
                                         </div>
                                     </div>
                                 </td>

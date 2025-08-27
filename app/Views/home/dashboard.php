@@ -32,7 +32,7 @@
 
             <!-- Quick Actions -->
             <div class="flex flex-wrap gap-4 mt-6">
-                <a href="<?= base_url('wallet') ?>" class="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors">
+                <a href="<?= base_url('wallet/topup') ?>" class="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors">
                     <i class="fas fa-plus mr-2"></i>
                     Top Up Wallet
                 </a>
@@ -44,8 +44,65 @@
                     <i class="fas fa-history mr-2"></i>
                     View Transactions
                 </a>
+
+                <!-- Special User Top-up Request Button -->
+                <?php if (isset($user['is_special_user']) && $user['is_special_user']): ?>
+                    <a href="<?= base_url('wallet/topup') ?>" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105">
+                        <i class="fas fa-star mr-2"></i>
+                        Request Admin Top-up
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
+
+        <!-- Special User Section -->
+        <?php if (isset($user['is_special_user']) && $user['is_special_user']): ?>
+            <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl shadow-xl p-6 text-white mb-8">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mr-4">
+                            <i class="fas fa-star text-3xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold">Special User Dashboard</h3>
+                            <p class="text-yellow-100">Manage user requests and request admin funding</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <a href="<?= base_url('wallet/topup') ?>" class="bg-white/20 rounded-xl p-4 hover:bg-white/30 transition-all duration-300 transform hover:scale-105">
+                        <div class="flex items-center">
+                            <i class="fas fa-plus text-xl mr-3"></i>
+                            <div>
+                                <h4 class="font-semibold">Request Admin Top-up</h4>
+                                <p class="text-yellow-100 text-sm">Get funding from admin</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="<?= base_url('wallet/user-requests') ?>" class="bg-white/20 rounded-xl p-4 hover:bg-white/30 transition-all duration-300 transform hover:scale-105">
+                        <div class="flex items-center">
+                            <i class="fas fa-list-alt text-xl mr-3"></i>
+                            <div>
+                                <h4 class="font-semibold">User Requests</h4>
+                                <p class="text-yellow-100 text-sm">Manage pending requests</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="<?= base_url('profile') ?>" class="bg-white/20 rounded-xl p-4 hover:bg-white/30 transition-all duration-300 transform hover:scale-105">
+                        <div class="flex items-center">
+                            <i class="fas fa-user-cog text-xl mr-3"></i>
+                            <div>
+                                <h4 class="font-semibold">Wallet Settings</h4>
+                                <p class="text-yellow-100 text-sm">Update wallet details</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Active Lucky Draws -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -248,7 +305,7 @@
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
-                        
+
                         <?php if (!empty($winnings)): ?>
                             <h4 class="font-medium text-gray-900 mb-3 mt-6">Recent Winnings</h4>
                             <?php foreach (array_slice($winnings, 0, 3) as $winning): ?>
@@ -268,7 +325,7 @@
                                         <?php else: ?>
                                             <p class="font-semibold text-blue-600">Product Prize</p>
                                         <?php endif; ?>
-                                        
+
                                         <?php if (!$winning['is_claimed']): ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                 Ready to Claim
@@ -295,15 +352,20 @@
 
 <?php
 // Helper function to get ordinal suffix
-function getOrdinal($n) {
+function getOrdinal($n)
+{
     if ($n >= 11 && $n <= 13) {
         return $n . 'th';
     }
     switch ($n % 10) {
-        case 1:  return $n . 'st';
-        case 2:  return $n . 'nd';
-        case 3:  return $n . 'rd';
-        default: return $n . 'th';
+        case 1:
+            return $n . 'st';
+        case 2:
+            return $n . 'nd';
+        case 3:
+            return $n . 'rd';
+        default:
+            return $n . 'th';
     }
 }
 ?>

@@ -30,7 +30,7 @@ class NotificationModel extends Model
     protected array $casts = [
         'data' => 'json',
         'is_read' => 'boolean',
-        'expires_at' => 'datetime',
+        'expires_at' => '?datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

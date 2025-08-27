@@ -77,15 +77,48 @@ class Wallet extends BaseController
             $user['wallet_id'] = $walletId;
         }
 
-        // Get users with wallet details for display
-        $walletUsers = $this->userModel->getUsersWithCompleteWalletDetails(3);
+        // Get active special users with complete wallet information (same filtering as admin page)
+        $specialUserWallets = $this->userModel->getUsersWithCompleteWalletDetails(
+            20, // Same as admin page perPage
+            0
+        );
+
+        // Additional filtering to ensure only complete wallets are shown
+        $filteredWallets = [];
+        foreach ($specialUserWallets as $wallet) {
+            // Check if wallet has complete information
+            if (
+                !empty(trim($wallet['wallet_name'])) &&
+                !empty(trim($wallet['wallet_number'])) &&
+                !empty(trim($wallet['wallet_type'])) &&
+                strtolower(trim($wallet['wallet_name'])) !== 'n/a' &&
+                strtolower(trim($wallet['wallet_name'])) !== 'pending' &&
+                strtolower(trim($wallet['wallet_number'])) !== 'n/a' &&
+                strtolower(trim($wallet['wallet_number'])) !== 'pending' &&
+                strtolower(trim($wallet['wallet_type'])) !== 'n/a' &&
+                strtolower(trim($wallet['wallet_type'])) !== 'pending' &&
+                strlen(trim($wallet['wallet_name'])) > 2 &&
+                strlen(trim($wallet['wallet_number'])) > 2
+            ) {
+                $filteredWallets[] = $wallet;
+            }
+        }
+
+        $specialUserWallets = $filteredWallets;
 
         $data = [
             'title' => 'Wallet Top-up',
             'user' => $user,
             'wallet' => $this->walletModel->getUserWallet($userId),
-            'walletUsers' => $walletUsers
+            'min_amount' => $this->settingModel->getMinTopupAmount(),
+            'max_amount' => $this->settingModel->getMaxTopupAmount(),
+            'special_user_wallets' => $specialUserWallets,
+            'user_type' => 'all',
+            'settingModel' => $this->settingModel
         ];
+
+        // Debug logging
+        log_message('info', 'Topup data being sent to view: ' . json_encode($data));
 
         return view('wallet/topup', $data);
     }
@@ -143,7 +176,7 @@ class Wallet extends BaseController
         return $methods;
     }
 
-    // Manual top-up request
+    // Manual top-up request (different for normal users vs special users)
     public function manualTopup()
     {
         if (!session()->get('user_id')) {
@@ -154,6 +187,7 @@ class Wallet extends BaseController
             $amount = $this->request->getPost('amount');
             $paymentMethod = $this->request->getPost('payment_method');
             $paymentProof = $this->request->getFile('payment_proof');
+            $notes = $this->request->getPost('notes');
 
             // Validate amount
             $minAmount = $this->settingModel->getMinTopupAmount();
@@ -169,9 +203,9 @@ class Wallet extends BaseController
             }
 
             $userId = session()->get('user_id');
-            $wallet = $this->walletModel->getUserWallet($userId);
+            $user = $this->userModel->find($userId);
 
-            // Handle file upload if provided
+            // Handle file upload
             $proofPath = null;
             if ($paymentProof && $paymentProof->isValid() && !$paymentProof->hasMoved()) {
                 $newName = $paymentProof->getRandomName();
@@ -179,41 +213,165 @@ class Wallet extends BaseController
                 $proofPath = 'uploads/topup_proofs/' . $newName;
             }
 
-            // Create top-up request
-            $requestId = $this->walletTopupRequestModel->insert([
-                'user_id' => $userId,
-                'amount' => $amount,
-                'payment_method' => $paymentMethod,
-                'payment_proof' => $proofPath,
-                'status' => 'pending',
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
-
-            if ($requestId) {
-                // Send notification to admin
-                $this->notificationService->notifyAdmin('topup_request', $userId, [
+            if ($user['is_special_user'] ?? false) {
+                // Special user requesting topup from admin
+                $requestId = $this->walletTopupRequestModel->insert([
+                    'user_id' => $userId,
+                    'special_user_id' => null, // No special user for admin topup
                     'amount' => $amount,
                     'payment_method' => $paymentMethod,
-                    'request_id' => $requestId
+                    'payment_proof' => $proofPath,
+                    'payment_proof_file' => $proofPath,
+                    'status' => 'pending',
+                    'admin_notes' => $notes,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
                 ]);
 
-                return redirect()->to('wallet')->with('success', 'Top-up request submitted successfully. Please wait for admin approval.');
+                if ($requestId) {
+                    // Send notification to admin
+                    $this->notificationService->notifyAdmin('topup_request', $userId, [
+                        'amount' => $amount,
+                        'payment_method' => $paymentMethod,
+                        'request_id' => $requestId,
+                        'user_type' => 'special_user'
+                    ]);
+
+                    return redirect()->back()->with('success', 'Top-up request submitted successfully. Please wait for admin approval.');
+                } else {
+                    return redirect()->back()->with('error', 'Failed to submit top-up request. Please try again.');
+                }
             } else {
-                return redirect()->back()->with('error', 'Failed to submit top-up request. Please try again.');
+                // Normal user requesting topup from special user
+                $specialUserId = $this->request->getPost('special_user_id');
+
+                if (!$specialUserId) {
+                    return redirect()->back()->with('error', 'Please select a special user wallet');
+                }
+
+                // Check if special user exists and is active
+                $specialUser = $this->userModel->find($specialUserId);
+                if (!$specialUser || !($specialUser['is_special_user'] ?? false) || !($specialUser['wallet_active'] ?? false)) {
+                    return redirect()->back()->with('error', 'Selected wallet is not available');
+                }
+
+                $requestId = $this->walletTopupRequestModel->insert([
+                    'user_id' => $userId,
+                    'special_user_id' => $specialUserId,
+                    'amount' => $amount,
+                    'payment_method' => $paymentMethod,
+                    'payment_proof' => $proofPath,
+                    'payment_proof_file' => $proofPath,
+                    'status' => 'pending',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+                if ($requestId) {
+                    // Send notification to special user
+                    $this->notificationService->notifyAdmin('topup_request_to_special_user', $userId, [
+                        'amount' => $amount,
+                        'payment_method' => $paymentMethod,
+                        'request_id' => $requestId,
+                        'special_user_id' => $specialUserId
+                    ]);
+
+                    return redirect()->back()->with('success', 'Top-up request submitted successfully. Please wait for the special user to confirm your payment.');
+                } else {
+                    return redirect()->back()->with('error', 'Failed to submit top-up request. Please try again.');
+                }
             }
         }
 
-        $data = [
-            'min_amount' => $this->settingModel->getMinTopupAmount(),
-            'max_amount' => $this->settingModel->getMaxTopupAmount(),
-            'random_wallets' => $this->userModel->getRandomWalletsForTopup(
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+
+        // Different data based on user type
+        if ($user['is_special_user'] ?? false) {
+            // Special users see admin wallet info for topup
+            $data = [
+                'min_amount' => $this->settingModel->getMinTopupAmount(),
+                'max_amount' => $this->settingModel->getMaxTopupAmount(),
+                'admin_wallets' => $this->getAdminWalletInfo(),
+                'user_type' => 'special'
+            ];
+        } else {
+            // Normal users see special user wallets for topup
+            $specialUserWallets = $this->userModel->getUsersWithCompleteWalletDetails(
                 $this->settingModel->getWalletDisplayCount(),
-                session()->get('user_id')
-            )
-        ];
+                0
+            );
+
+            // Debug logging
+            log_message('info', 'Special user wallets for normal users: ' . json_encode($specialUserWallets));
+            log_message('info', 'Special user wallets count: ' . count($specialUserWallets));
+
+            $data = [
+                'min_amount' => $this->settingModel->getMinTopupAmount(),
+                'max_amount' => $this->settingModel->getMaxTopupAmount(),
+                'special_user_wallets' => $specialUserWallets,
+                'user_type' => 'normal'
+            ];
+        }
 
         return view('wallet/manual_topup', $data);
+    }
+
+    /**
+     * Get admin wallet information for special user topup
+     */
+    private function getAdminWalletInfo()
+    {
+        // Get admin users with wallet information
+        $adminUsers = $this->userModel->select('id, full_name, wallet_name, wallet_number, wallet_type, bank_name, wallet_id')
+            ->where('is_admin', true)
+            ->where('wallet_active', 1)
+            ->where('wallet_name IS NOT NULL')
+            ->where('wallet_number IS NOT NULL')
+            ->findAll();
+
+        // Ensure all admin users have wallet IDs
+        foreach ($adminUsers as &$admin) {
+            if (empty($admin['wallet_id'])) {
+                $walletId = $this->userModel->ensureWalletId($admin['id']);
+                $admin['wallet_id'] = $walletId;
+            }
+        }
+
+        // Debug logging
+        log_message('info', 'Admin wallet info query result: ' . json_encode($adminUsers));
+        log_message('info', 'Admin users count: ' . count($adminUsers));
+
+        return $adminUsers;
+    }
+
+    /**
+     * Show user requests (for special users to approve normal user topups)
+     */
+    public function userRequests()
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+
+        // Only special users can see user requests
+        if (!($user['is_special_user'] ?? false)) {
+            return redirect()->to('/wallet')->with('error', 'Access denied. Only special users can view user requests.');
+        }
+
+        // Get pending topup requests for this special user
+        $data = [
+            'title' => 'User Top-up Requests',
+            'user' => $user,
+            'wallet' => $this->walletModel->getUserWallet($userId),
+            'requests' => $this->walletTopupRequestModel->getRequestsForSpecialUser($userId),
+            'user_type' => 'special'
+        ];
+
+        return view('wallet/user_requests', $data);
     }
 
     /**
@@ -234,6 +392,16 @@ class Wallet extends BaseController
         $paymentMethod = $this->request->getPost('payment_method');
         $notes = $this->request->getPost('notes');
         $paymentProof = $this->request->getFile('payment_proof');
+        $specialUserId = $this->request->getPost('special_user_id');
+
+        // Debug logging
+        log_message('info', 'Topup request input data: ' . json_encode([
+            'amount' => $amount,
+            'payment_method' => $paymentMethod,
+            'notes' => $notes,
+            'special_user_id' => $specialUserId,
+            'has_payment_proof' => $paymentProof ? 'yes' : 'no'
+        ]));
 
         if (!$amount || $amount < 500 || $amount > 50000) {
             return $this->response->setJSON(['success' => false, 'message' => 'Invalid amount']);
@@ -249,6 +417,7 @@ class Wallet extends BaseController
 
         try {
             $userId = session()->get('user_id');
+            $user = $this->userModel->find($userId);
 
             // Handle file upload
             $uploadPath = 'uploads/payment_proofs/';
@@ -260,36 +429,102 @@ class Wallet extends BaseController
             $paymentProof->move($uploadPath, $fileName);
             $filePath = $uploadPath . $fileName;
 
-            // Create topup request
-            $requestData = [
-                'user_id' => $userId,
-                'amount' => $amount,
-                'payment_method' => $paymentMethod,
-                'payment_proof' => $filePath,
-                'notes' => $notes,
-                'status' => 'pending'
-            ];
-
-            $requestId = $this->walletTopupRequestModel->insert($requestData);
-
-            if ($requestId) {
-                // Send notification to admin
-                $this->notificationService->notifyAdmin('topup_request', $userId, [
+            if ($user['is_special_user'] ?? false) {
+                // Special user requesting topup from admin
+                $requestData = [
+                    'user_id' => $userId,
                     'amount' => $amount,
                     'payment_method' => $paymentMethod,
-                    'request_id' => $requestId
-                ]);
+                    'payment_proof' => $filePath,
+                    'notes' => $notes,
+                    'status' => 'pending',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
 
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Top-up request submitted successfully'
-                ]);
+                // Debug logging
+                log_message('info', 'Special user topup request data: ' . json_encode($requestData));
+
+                $requestId = $this->walletTopupRequestModel->insert($requestData);
+
+                if (!$requestId) {
+                    log_message('error', 'Failed to insert special user topup request. Model errors: ' . json_encode($this->walletTopupRequestModel->errors()));
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Database error: Failed to create top-up request'
+                    ]);
+                }
+
+                if ($requestId) {
+                    // Send notification to admin
+                    $this->notificationService->notifyAdmin('topup_request', $userId, [
+                        'amount' => $amount,
+                        'payment_method' => $paymentMethod,
+                        'request_id' => $requestId
+                    ]);
+
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Top-up request submitted successfully. Admin will review and process your request.'
+                    ]);
+                }
             } else {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Failed to create top-up request'
-                ]);
+                // Normal user requesting topup from special user
+                if (!$specialUserId) {
+                    return $this->response->setJSON(['success' => false, 'message' => 'Please select a special user wallet owner']);
+                }
+
+                // Verify the selected special user is valid
+                $specialUser = $this->userModel->find($specialUserId);
+                if (!$specialUser || !($specialUser['is_special_user'] ?? false) || !($specialUser['wallet_active'] ?? false)) {
+                    return $this->response->setJSON(['success' => false, 'message' => 'Selected wallet owner is not available']);
+                }
+
+                $requestData = [
+                    'user_id' => $userId,
+                    'special_user_id' => $specialUserId,
+                    'amount' => $amount,
+                    'payment_method' => $paymentMethod,
+                    'payment_proof' => $filePath,
+                    'notes' => $notes,
+                    'status' => 'pending',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                // Debug logging
+                log_message('info', 'Normal user topup request data: ' . json_encode($requestData));
+
+                $requestId = $this->walletTopupRequestModel->insert($requestData);
+
+                if (!$requestId) {
+                    log_message('error', 'Failed to insert normal user topup request. Model errors: ' . json_encode($this->walletTopupRequestModel->errors()));
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Database error: Failed to create top-up request'
+                    ]);
+                }
+
+                if ($requestId) {
+                    // Send notification to special user
+                    $this->notificationService->notifyAdmin('topup_request_to_special_user', $userId, [
+                        'amount' => $amount,
+                        'payment_method' => $paymentMethod,
+                        'request_id' => $requestId,
+                        'special_user_id' => $specialUserId
+                    ]);
+
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Top-up request submitted successfully. Please wait for the special user to confirm your payment.'
+                    ]);
+                }
             }
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create top-up request'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Manual topup submission failed: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -520,9 +755,9 @@ class Wallet extends BaseController
     }
 
     /**
-     * Show user requests list (only for special users)
+     * Special user approves topup request after confirming payment
      */
-    public function userRequests()
+    public function approveTopupRequest($requestId)
     {
         if (!session()->get('user_id')) {
             return redirect()->to('/login');
@@ -531,26 +766,95 @@ class Wallet extends BaseController
         $userId = session()->get('user_id');
         $user = $this->userModel->find($userId);
 
-        // Only special users can view user requests
+        // Only special users can approve topup requests
         if (!($user['is_special_user'] ?? false)) {
-            return redirect()->to('wallet')->with('error', 'Only special users can view user requests');
+            return redirect()->to('wallet')->with('error', 'Only special users can approve topup requests');
         }
 
-        // Get pending topup requests
-        $pendingTopups = $this->walletTopupRequestModel->getPendingRequests(20);
+        if ($this->request->getMethod() === 'POST') {
+            $notes = $this->request->getPost('notes');
 
-        // Get pending transfer requests
-        $pendingTransfers = $this->userTransferModel->getPendingTransfers(20);
+            if ($this->walletTopupRequestModel->approveBySpecialUser($requestId, $userId, $notes)) {
+                // Check if this is an AJAX request
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Topup request approved successfully'
+                    ]);
+                }
+                return redirect()->back()->with('success', 'Topup request approved successfully');
+            } else {
+                // Check if this is an AJAX request
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Failed to approve topup request'
+                    ]);
+                }
+                return redirect()->back()->with('error', 'Failed to approve topup request');
+            }
+        }
 
         $data = [
-            'title' => 'User Requests',
+            'title' => 'Approve Topup Request',
             'user' => $user,
-            'pendingTopups' => $pendingTopups,
-            'pendingTransfers' => $pendingTransfers
+            'topupRequest' => $this->walletTopupRequestModel->getRequestWithUser($requestId)
         ];
 
-        return view('wallet/user_requests', $data);
+        return view('wallet/approve_topup_request', $data);
     }
+
+    /**
+     * Special user rejects topup request
+     */
+    public function rejectTopupRequest($requestId)
+    {
+        if (!session()->get('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+        $user = $this->userModel->find($userId);
+
+        // Only special users can reject topup requests
+        if (!($user['is_special_user'] ?? false)) {
+            return redirect()->to('wallet')->with('error', 'Only special users can reject topup requests');
+        }
+
+        if ($this->request->getMethod() === 'POST') {
+            $notes = $this->request->getPost('notes');
+
+            if ($this->walletTopupRequestModel->rejectBySpecialUser($requestId, $userId, $notes)) {
+                // Check if this is an AJAX request
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Topup request rejected successfully'
+                    ]);
+                }
+                return redirect()->back()->with('success', 'Topup request rejected successfully');
+            } else {
+                // Check if this is an AJAX request
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Failed to reject topup request'
+                    ]);
+                }
+                return redirect()->back()->with('error', 'Failed to reject topup request');
+            }
+        }
+
+        $data = [
+            'title' => 'Reject Topup Request',
+            'user' => $user,
+            'topupRequest' => $this->walletTopupRequestModel->getRequestWithUser($requestId)
+        ];
+
+        return view('wallet/reject_topup_request', $data);
+    }
+
+
 
     // Wallet profile management
     public function profile()
