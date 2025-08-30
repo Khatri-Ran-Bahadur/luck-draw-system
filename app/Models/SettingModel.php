@@ -118,7 +118,7 @@ class SettingModel extends Model
         return $result;
     }
 
-    // Referral System Settings
+    // Referral System Settings (Fixed Amount)
     public function getReferralBonusAmount()
     {
         return (float) $this->getSetting('referral_bonus_amount', 100.00);
@@ -126,7 +126,7 @@ class SettingModel extends Model
 
     public function setReferralBonusAmount($amount)
     {
-        return $this->setSetting('referral_bonus_amount', $amount, 'Referral bonus amount in PKR for new user registration');
+        return $this->setSetting('referral_bonus_amount', $amount, 'Fixed referral bonus amount in PKR');
     }
 
     public function getReferralBonusConditions()
@@ -159,7 +159,7 @@ class SettingModel extends Model
         return $this->setSetting('max_referrals_per_user', $count, 'Maximum referrals allowed per user (0 = unlimited)');
     }
 
-    // Special User Commission Settings
+    // Special User Commission Settings (Percentage)
     public function getSpecialUserCommission()
     {
         return (float) $this->getSetting('special_user_commission', 5.0);
@@ -301,5 +301,118 @@ class SettingModel extends Model
     {
         $setting = $this->where('key', 'min_withdraw_amount')->first();
         return $setting ? (float) $setting['value'] : 1000;
+    }
+
+    // Contact Information Settings
+    public function getContactEmail()
+    {
+        return $this->getSetting('contact_email', 'support@luckydraw.com');
+    }
+
+    public function setContactEmail($email)
+    {
+        return $this->setSetting('contact_email', $email, 'Primary contact email address');
+    }
+
+    public function getContactPhone()
+    {
+        return $this->getSetting('contact_phone', '+92 300 1234567');
+    }
+
+    public function setContactPhone($phone)
+    {
+        return $this->setSetting('contact_phone', $phone, 'Primary contact phone number');
+    }
+
+    public function getContactAddress()
+    {
+        return $this->getSetting('contact_address', '123 Main Street, Lahore, Pakistan');
+    }
+
+    public function setContactAddress($address)
+    {
+        return $this->setSetting('contact_address', $address, 'Business address');
+    }
+
+    public function getContactWorkingHours()
+    {
+        return $this->getSetting('contact_working_hours', 'Monday to Friday, 9am to 6pm');
+    }
+
+    public function setContactWorkingHours($hours)
+    {
+        return $this->setSetting('contact_working_hours', $hours, 'Business working hours');
+    }
+
+    // Footer Settings
+    public function getFooterDescription()
+    {
+        return $this->getSetting('footer_description', 'Join our exciting lucky draws and stand a chance to win incredible cash prizes and amazing products!');
+    }
+
+    public function setFooterDescription($description)
+    {
+        return $this->setSetting('footer_description', $description, 'Footer description text');
+    }
+
+    public function getFooterCopyright()
+    {
+        return $this->getSetting('footer_copyright', 'Lucky Draw System. All rights reserved.');
+    }
+
+    public function setFooterCopyright($copyright)
+    {
+        return $this->setSetting('footer_copyright', $copyright, 'Footer copyright text');
+    }
+
+    // Social Media Settings
+    public function getFacebookUrl()
+    {
+        return $this->getSetting('facebook_url', '#');
+    }
+
+    public function setFacebookUrl($url)
+    {
+        return $this->setSetting('facebook_url', $url, 'Facebook page URL');
+    }
+
+    public function getTwitterUrl()
+    {
+        return $this->getSetting('twitter_url', '#');
+    }
+
+    public function setTwitterUrl($url)
+    {
+        return $this->setSetting('twitter_url', $url, 'Twitter profile URL');
+    }
+
+    public function getInstagramUrl()
+    {
+        return $this->getSetting('instagram_url', '#');
+    }
+
+    public function setInstagramUrl($url)
+    {
+        return $this->setSetting('instagram_url', $url, 'Instagram profile URL');
+    }
+
+    public function getLinkedinUrl()
+    {
+        return $this->getSetting('linkedin_url', '#');
+    }
+
+    public function setLinkedinUrl($url)
+    {
+        return $this->setSetting('linkedin_url', $url, 'LinkedIn profile URL');
+    }
+
+    public function getYoutubeUrl()
+    {
+        return $this->getSetting('youtube_url', '#');
+    }
+
+    public function setYoutubeUrl($url)
+    {
+        return $this->setSetting('youtube_url', $url, 'YouTube channel URL');
     }
 }

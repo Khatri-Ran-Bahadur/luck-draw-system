@@ -249,19 +249,7 @@
                                 <p class="text-xs text-gray-500 mt-2">Click on the code to select it, or use the copy button</p>
                             </div>
 
-                            <!-- Wallet ID Display -->
-                            <div class="bg-white rounded-lg p-4 border border-purple-300 mt-4">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h4 class="text-sm font-medium text-gray-700 mb-1">Your Wallet ID</h4>
-                                        <code class="text-xl font-mono font-bold text-purple-600 select-all cursor-pointer" onclick="selectWalletId(this)" title="Click to select"><?= esc($user['wallet_id'] ?? 'Not Generated') ?></code>
-                                    </div>
-                                    <button id="walletIdBtn" onclick="copyWalletId()" class="ml-3 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                        <i class="fas fa-copy mr-1"></i>Copy
-                                    </button>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-2">Share this ID with others for wallet transfers</p>
-                            </div>
+                          
                             <p class="text-sm text-gray-600 mt-3">Share this code with friends to earn referral bonuses!</p>
                         <?php else: ?>
                             <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-300">

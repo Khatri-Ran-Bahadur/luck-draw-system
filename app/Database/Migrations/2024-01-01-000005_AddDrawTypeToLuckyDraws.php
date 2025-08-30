@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class AddDrawTypeToLuckyDraws extends Migration
+class AddDrawTypeToLuckDraws extends Migration
 {
     public function up()
     {

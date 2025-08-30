@@ -43,7 +43,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <?php
+    $settingModel = new \App\Models\SettingModel();
+    $favicon = $settingModel->getSetting('favicon');
+    if (!empty($favicon)): ?>
+        <link rel="icon" type="image/<?= pathinfo($favicon, PATHINFO_EXTENSION) === 'ico' ? 'x-icon' : 'png' ?>"
+            href="<?= base_url('uploads/settings/' . $favicon) ?>">
+    <?php else: ?>
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <?php endif; ?>
 
     <!-- Custom CSS -->
     <style>
@@ -122,7 +130,7 @@
                             <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse-slow"></div>
                         </div>
                         <div>
-                            <span class="text-2xl font-black text-white">LuckyDraw</span>
+                            <span class="text-2xl font-black text-white">QuickLucky</span>
                             <p class="text-xs text-white/80 -mt-1 font-medium">Win • Play • Prosper</p>
                         </div>
                     </a>
@@ -312,7 +320,12 @@
                             <p class="text-sm text-gray-400">Win Amazing Prizes</p>
                         </div>
                     </div>
-                    <p class="text-gray-300 text-sm leading-relaxed">Join our exciting lucky draws and stand a chance to win incredible cash prizes and amazing products!</p>
+                    <p class="text-gray-300 text-sm leading-relaxed">
+                        <?php
+                        $settingModel = new \App\Models\SettingModel();
+                        echo esc($settingModel->getFooterDescription());
+                        ?>
+                    </p>
                 </div>
                 <div>
                     <h4 class="text-lg font-semibold mb-6 text-white">Quick Links</h4>
@@ -336,32 +349,41 @@
                 <div>
                     <h4 class="text-lg font-semibold mb-6 text-white">Connect</h4>
                     <div class="flex space-x-4">
-                        <a href="#" class="w-10 h-10 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center transition-colors duration-200">
-                            <i class="fab fa-facebook text-white"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-blue-400 hover:bg-blue-500 rounded-lg flex items-center justify-center transition-colors duration-200">
-                            <i class="fab fa-twitter text-white"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-pink-600 hover:bg-pink-700 rounded-lg flex items-center justify-center transition-colors duration-200">
-                            <i class="fab fa-instagram text-white"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center transition-colors duration-200">
-                            <i class="fab fa-youtube text-white"></i>
-                        </a>
-                    </div>
-                    <div class="mt-6">
-                        <h5 class="text-sm font-medium text-gray-300 mb-3">Newsletter</h5>
-                        <div class="flex">
-                            <input type="email" placeholder="Enter your email" class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-l-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-r-lg transition-colors duration-200">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
+                        <?php
+                        $facebookUrl = $settingModel->getFacebookUrl();
+                        $twitterUrl = $settingModel->getTwitterUrl();
+                        $instagramUrl = $settingModel->getInstagramUrl();
+                        $youtubeUrl = $settingModel->getYoutubeUrl();
+                        ?>
+
+                        <?php if (!empty($facebookUrl) && $facebookUrl !== '#'): ?>
+                            <a href="<?= esc($facebookUrl) ?>" target="_blank" class="w-10 h-10 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center transition-colors duration-200">
+                                <i class="fab fa-facebook text-white"></i>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (!empty($twitterUrl) && $twitterUrl !== '#'): ?>
+                            <a href="<?= esc($twitterUrl) ?>" target="_blank" class="w-10 h-10 bg-blue-400 hover:bg-blue-500 rounded-lg flex items-center justify-center transition-colors duration-200">
+                                <i class="fab fa-twitter text-white"></i>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (!empty($instagramUrl) && $instagramUrl !== '#'): ?>
+                            <a href="<?= esc($instagramUrl) ?>" target="_blank" class="w-10 h-10 bg-pink-600 hover:bg-pink-700 rounded-lg flex items-center justify-center transition-colors duration-200">
+                                <i class="fab fa-instagram text-white"></i>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (!empty($youtubeUrl) && $youtubeUrl !== '#'): ?>
+                            <a href="<?= esc($youtubeUrl) ?>" target="_blank" class="w-10 h-10 bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center transition-colors duration-200">
+                                <i class="fab fa-youtube text-white"></i>
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
             <div class="border-t border-gray-800 mt-12 pt-8 text-center">
-                <p class="text-gray-400 text-sm">&copy; <?= date('Y') ?> Lucky Draw System. All rights reserved.</p>
+                <p class="text-gray-400 text-sm">&copy; <?= date('Y') ?> <?= esc($settingModel->getFooterCopyright()) ?></p>
             </div>
         </div>
     </footer>

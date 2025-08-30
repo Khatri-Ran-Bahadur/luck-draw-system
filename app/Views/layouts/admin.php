@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Lucky Draw System</title>
 
+    <!-- Favicon -->
+    <?php
+    $settingModel = new \App\Models\SettingModel();
+    $favicon = $settingModel->getSetting('favicon');
+    if (!empty($favicon)): ?>
+        <link rel="icon" type="image/<?= pathinfo($favicon, PATHINFO_EXTENSION) === 'ico' ? 'x-icon' : 'png' ?>"
+            href="<?= base_url('uploads/settings/' . $favicon) ?>">
+    <?php else: ?>
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <?php endif; ?>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -260,7 +271,7 @@
                     <span class="text-white font-bold text-lg">L</span>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-gray-800">Lucky Draw</h1>
+                    <h1 class="text-xl font-bold text-gray-800">QuickLucky</h1>
                     <p class="text-xs text-gray-500">Admin Dashboard</p>
                 </div>
             </div>
@@ -335,12 +346,16 @@
                         <i class="fas fa-money-bill-wave mr-3 h-5 w-5 flex-shrink-0"></i>
                         Withdrawal Requests
                     </a>
-                    
+
                 </div>
 
                 <!-- System Management -->
                 <div class="space-y-2">
                     <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">System</h3>
+                    <a href="<?= base_url('admin/contact-submissions') ?>" class="nav-item <?= strpos(current_url(), 'admin/contact-submissions') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
+                        <i class="fas fa-envelope mr-3 h-5 w-5 flex-shrink-0"></i>
+                        Contact Submissions
+                    </a>
                     <a href="<?= base_url('admin/notifications') ?>" class="nav-item <?= strpos(current_url(), 'admin/notifications') !== false ? 'nav-item-active' : 'nav-item-inactive' ?>">
                         <i class="fas fa-bell mr-3 h-5 w-5 flex-shrink-0"></i>
                         Notifications
@@ -413,6 +428,7 @@
                         elseif (url_is('admin/transactions*')) echo 'Transactions';
                         elseif (url_is('admin/notifications*')) echo 'Notifications';
                         elseif (url_is('admin/winners*')) echo 'Winners';
+                        elseif (url_is('admin/contact-submissions*')) echo 'Contact Submissions';
                         elseif (url_is('admin/settings*')) echo 'Settings';
 
                         elseif (url_is('admin/admins*')) echo 'Administrators';
@@ -428,6 +444,7 @@
                         elseif (url_is('admin/transactions*')) echo 'View and manage financial transactions';
                         elseif (url_is('admin/notifications*')) echo 'Monitor user activities and system notifications';
                         elseif (url_is('admin/winners*')) echo 'View draw winners and results';
+                        elseif (url_is('admin/contact-submissions*')) echo 'Manage customer inquiries and support requests';
                         elseif (url_is('admin/settings*')) echo 'Configure system settings';
 
                         elseif (url_is('admin/admins*')) echo 'Manage administrator accounts';

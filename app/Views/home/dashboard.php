@@ -49,7 +49,7 @@
                 <?php if (isset($user['is_special_user']) && $user['is_special_user']): ?>
                     <a href="<?= base_url('wallet/topup') ?>" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105">
                         <i class="fas fa-star mr-2"></i>
-                        Request Admin Top-up
+                        Request Top-up
                     </a>
                 <?php endif; ?>
             </div>
@@ -65,7 +65,7 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-semibold">Special User Dashboard</h3>
-                            <p class="text-yellow-100">Manage user requests and request admin funding</p>
+                            <p class="text-yellow-100">Manage user requests and request  funding</p>
                         </div>
                     </div>
                 </div>
@@ -75,7 +75,7 @@
                         <div class="flex items-center">
                             <i class="fas fa-plus text-xl mr-3"></i>
                             <div>
-                                <h4 class="font-semibold">Request Admin Top-up</h4>
+                                <h4 class="font-semibold">Request  Top-up</h4>
                                 <p class="text-yellow-100 text-sm">Get funding from admin</p>
                             </div>
                         </div>

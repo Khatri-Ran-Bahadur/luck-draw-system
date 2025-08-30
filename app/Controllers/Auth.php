@@ -510,7 +510,13 @@ class Auth extends BaseController
             $googleUser = $googleOAuth->handleCallback($code, $state);
 
             // Find or create user
-            $user = $this->userModel->findOrCreateByGoogle($googleUser);
+            $referralCode = session()->get('referral_code');
+            $user = $this->userModel->findOrCreateByGoogle($googleUser, $referralCode);
+
+            // Clear referral code from session after processing
+            if ($referralCode) {
+                session()->remove('referral_code');
+            }
 
             // Debug logging
 

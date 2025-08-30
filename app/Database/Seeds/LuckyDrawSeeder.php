@@ -4,7 +4,7 @@ namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
 
-class LuckyDrawSeeder extends Seeder
+class LuckDrawSeeder extends Seeder
 {
     public function run()
     {

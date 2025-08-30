@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateLuckyDraws extends Migration
+class CreateLuckDraws extends Migration
 {
     public function up()
     {
@@ -48,7 +48,7 @@ class CreateLuckyDraws extends Migration
                 'unsigned' => true,
                 'null' => true,
             ],
-            
+
             'created_at' => [
                 'type' => 'DATETIME',
                 'null' => false,
@@ -58,7 +58,7 @@ class CreateLuckyDraws extends Migration
                 'null' => false,
             ],
         ]);
-        
+
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('winner_id', 'users', 'id', 'CASCADE', 'SET NULL');
         $this->forge->createTable('lucky_draws');

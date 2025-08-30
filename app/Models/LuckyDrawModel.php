@@ -4,7 +4,7 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class LuckyDrawModel extends Model
+class LuckDrawModel extends Model
 {
     protected $table = 'lucky_draws';
     protected $primaryKey = 'id';
@@ -71,17 +71,17 @@ class LuckyDrawModel extends Model
     public function getActiveDraws()
     {
         return $this->where('status', 'active')
-                   ->where('draw_date >', date('Y-m-d H:i:s'))
-                   ->orderBy('draw_date', 'ASC')
-                   ->findAll();
+            ->where('draw_date >', date('Y-m-d H:i:s'))
+            ->orderBy('draw_date', 'ASC')
+            ->findAll();
     }
 
     // Get draws by type
     public function getDrawsByType($type)
     {
         return $this->where('draw_type', $type)
-                   ->where('status', 'active')
-                   ->findAll();
+            ->where('status', 'active')
+            ->findAll();
     }
 
     // Get cash draws - redirect to CashDrawModel
@@ -102,20 +102,20 @@ class LuckyDrawModel extends Model
     public function getDrawWithEntries($drawId)
     {
         return $this->select('lucky_draws.*, COUNT(entries.id) as total_entries')
-                   ->join('entries', 'entries.lucky_draw_id = lucky_draws.id', 'left')
-                   ->where('lucky_draws.id', $drawId)
-                   ->groupBy('lucky_draws.id')
-                   ->first();
+            ->join('entries', 'entries.lucky_draw_id = lucky_draws.id', 'left')
+            ->where('lucky_draws.id', $drawId)
+            ->groupBy('lucky_draws.id')
+            ->first();
     }
 
     // Get all draws for admin with entry counts
     public function getDrawsForAdmin()
     {
         return $this->select('lucky_draws.*, COUNT(entries.id) as total_entries')
-                   ->join('entries', 'entries.lucky_draw_id = lucky_draws.id', 'left')
-                   ->groupBy('lucky_draws.id')
-                   ->orderBy('lucky_draws.created_at', 'DESC')
-                   ->findAll();
+            ->join('entries', 'entries.lucky_draw_id = lucky_draws.id', 'left')
+            ->groupBy('lucky_draws.id')
+            ->orderBy('lucky_draws.created_at', 'DESC')
+            ->findAll();
     }
 
     // Get draw by ID with all related data

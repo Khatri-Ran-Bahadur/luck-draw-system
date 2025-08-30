@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class AddMissingColumnsToLuckyDraws extends Migration
+class AddMissingColumnsToLuckDraws extends Migration
 {
     public function up()
     {

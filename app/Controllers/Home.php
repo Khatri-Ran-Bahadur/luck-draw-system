@@ -443,10 +443,38 @@ class Home extends BaseController
             return $winner['draw_type'] === 'product';
         });
 
+        // Get user-specific winning information if logged in
+        $userWinnings = null;
+        $userTotalWinnings = 0;
+        $userClaimStatus = [];
+
+        if (session()->get('user_id')) {
+            $userId = session()->get('user_id');
+
+            // Get user's winnings
+            $userWinnings = $this->winnerModel->getUserWinnings($userId);
+
+            // Get total winnings amount
+            $userTotalWinnings = $this->winnerModel->getUserTotalWinnings($userId);
+
+            // Get claim status for each winning
+            foreach ($userWinnings as $winning) {
+                $userClaimStatus[$winning['id']] = [
+                    'is_claimed' => $winning['is_claimed'],
+                    'claim_approved' => $winning['claim_approved'],
+                    'claim_details' => $winning['claim_details'] ?? null
+                ];
+            }
+        }
+
         $data = [
             'winners' => $allWinners,
             'cash_winners' => array_values($cashWinners),
-            'product_winners' => array_values($productWinners)
+            'product_winners' => array_values($productWinners),
+            'user_winnings' => $userWinnings,
+            'user_total_winnings' => $userTotalWinnings,
+            'user_claim_status' => $userClaimStatus,
+            'is_logged_in' => session()->get('user_id') ? true : false
         ];
 
         return view('home/winners', $data);
@@ -459,31 +487,70 @@ class Home extends BaseController
 
     public function contact()
     {
-        return view('home/contact');
-    }
+        if ($this->request->getMethod() === 'POST') {
+            // Validate the form
+            $validation = \Config\Services::validation();
 
-    public function terms()
-    {
-        return view('home/terms');
-    }
+            $validationRules = [
+                'name' => 'required|min_length[2]|max_length[100]',
+                'email' => 'required|valid_email|max_length[100]',
+                'phone' => 'permit_empty|max_length[20]',
+                'subject' => 'required|min_length[5]|max_length[200]',
+                'message' => 'required|min_length[10]|max_length[2000]'
+            ];
 
-    public function privacy()
-    {
-        return view('home/privacy');
-    }
+            if (!$this->validate($validationRules)) {
+                // Get contact information from settings for the form reload
+                $settingModel = new \App\Models\SettingModel();
+                $contactInfo = [
+                    'email' => $settingModel->getContactEmail(),
+                    'phone' => $settingModel->getContactPhone(),
+                    'address' => $settingModel->getContactAddress(),
+                    'working_hours' => $settingModel->getContactWorkingHours(),
+                    'facebook_url' => $settingModel->getFacebookUrl(),
+                    'twitter_url' => $settingModel->getTwitterUrl(),
+                    'instagram_url' => $settingModel->getInstagramUrl(),
+                    'linkedin_url' => $settingModel->getLinkedinUrl()
+                ];
 
-    public function faq()
-    {
-        return view('home/faq');
-    }
+                return view('home/contact', [
+                    'contactInfo' => $contactInfo,
+                    'validation' => $this->validator,
+                    'old' => $this->request->getPost()
+                ]);
+            }
 
-    public function search()
-    {
-        return view('home/search');
-    }
+            // Create contact submission
+            $contactModel = new \App\Models\ContactModel();
+            $contactData = [
+                'name' => $this->request->getPost('name'),
+                'email' => $this->request->getPost('email'),
+                'phone' => $this->request->getPost('phone'),
+                'subject' => $this->request->getPost('subject'),
+                'message' => $this->request->getPost('message'),
+                'status' => 'pending'
+            ];
 
-    public function maintenance()
-    {
-        return view('home/maintenance');
+            if ($contactModel->insert($contactData)) {
+                return redirect()->back()->with('success', 'Thank you for your message! We will get back to you soon.');
+            } else {
+                return redirect()->back()->with('error', 'Failed to send message. Please try again.');
+            }
+        }
+
+        // Get contact information from settings
+        $settingModel = new \App\Models\SettingModel();
+        $contactInfo = [
+            'email' => $settingModel->getContactEmail(),
+            'phone' => $settingModel->getContactPhone(),
+            'address' => $settingModel->getContactAddress(),
+            'working_hours' => $settingModel->getContactWorkingHours(),
+            'facebook_url' => $settingModel->getFacebookUrl(),
+            'twitter_url' => $settingModel->getTwitterUrl(),
+            'instagram_url' => $settingModel->getInstagramUrl(),
+            'linkedin_url' => $settingModel->getLinkedinUrl()
+        ];
+
+        return view('home/contact', ['contactInfo' => $contactInfo]);
     }
 }

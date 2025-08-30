@@ -310,9 +310,9 @@ class UserModel extends Model
     }
 
     /**
-     * Find or create user by Google ID
+     * Find or create user by Google OAuth data
      */
-    public function findOrCreateByGoogle($googleData)
+    public function findOrCreateByGoogle($googleData, $referralCode = null)
     {
         $user = $this->where('google_id', $googleData['id'])->first();
 
@@ -328,8 +328,8 @@ class UserModel extends Model
                 // Get updated user data
                 $user = $this->find($user['id']);
             } else {
-                // Create new user
-                $userId = $this->insert([
+                // Prepare user data
+                $userData = [
                     'email' => $googleData['email'],
                     'username' => $this->generateUsername($googleData['name']),
                     'full_name' => $googleData['name'],
@@ -337,7 +337,24 @@ class UserModel extends Model
                     'password' => bin2hex(random_bytes(16)), // Random password
                     'status' => 'active',
                     'login_type' => 'google'
-                ]);
+                ];
+
+                // Add referral information if provided
+                if ($referralCode) {
+                    $referrer = $this->findByReferralCode($referralCode);
+                    if ($referrer) {
+                        $userData['referred_by'] = $referrer['id'];
+                    }
+                }
+
+                // Generate referral code for new user
+                $userData['referral_code'] = $this->generateReferralCode();
+
+                // Generate wallet ID for new user
+                $userData['wallet_id'] = $this->generateWalletId();
+
+                // Create new user
+                $userId = $this->insert($userData);
                 $user = $this->find($userId);
             }
         }

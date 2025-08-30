@@ -29,8 +29,7 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-lg font-medium text-gray-900">Email</h3>
-                                <p class="mt-1 text-gray-600">support@luckydraw.com</p>
-                                <p class="mt-1 text-gray-600">info@luckydraw.com</p>
+                                <p class="mt-1 text-gray-600"><?= $contactInfo['email'] ?? 'support@luckydraw.com' ?></p>
                             </div>
                         </div>
 
@@ -42,8 +41,8 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-lg font-medium text-gray-900">Phone</h3>
-                                <p class="mt-1 text-gray-600">+92 300 1234567</p>
-                                <p class="mt-1 text-gray-600">Monday to Friday, 9am to 6pm</p>
+                                <p class="mt-1 text-gray-600"><?= $contactInfo['phone'] ?? '+92 300 1234567' ?></p>
+                                <p class="mt-1 text-gray-600"><?= $contactInfo['working_hours'] ?? 'Monday to Friday, 9am to 6pm' ?></p>
                             </div>
                         </div>
 
@@ -55,8 +54,7 @@
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-lg font-medium text-gray-900">Location</h3>
-                                <p class="mt-1 text-gray-600">123 Main Street</p>
-                                <p class="mt-1 text-gray-600">Lahore, Pakistan</p>
+                                <p class="mt-1 text-gray-600"><?= $contactInfo['address'] ?? '123 Main Street, Lahore, Pakistan' ?></p>
                             </div>
                         </div>
 
@@ -64,18 +62,29 @@
                         <div class="pt-6">
                             <h3 class="text-lg font-medium text-gray-900 mb-4">Follow Us</h3>
                             <div class="flex space-x-4">
-                                <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors">
-                                    <i class="fab fa-facebook text-2xl"></i>
-                                </a>
-                                <a href="#" class="text-gray-400 hover:text-blue-400 transition-colors">
-                                    <i class="fab fa-twitter text-2xl"></i>
-                                </a>
-                                <a href="#" class="text-gray-400 hover:text-pink-500 transition-colors">
-                                    <i class="fab fa-instagram text-2xl"></i>
-                                </a>
-                                <a href="#" class="text-gray-400 hover:text-blue-700 transition-colors">
-                                    <i class="fab fa-linkedin text-2xl"></i>
-                                </a>
+                                <?php if (!empty($contactInfo['facebook_url']) && $contactInfo['facebook_url'] !== '#'): ?>
+                                    <a href="<?= $contactInfo['facebook_url'] ?>" target="_blank" class="text-gray-400 hover:text-blue-500 transition-colors">
+                                        <i class="fab fa-facebook text-2xl"></i>
+                                    </a>
+                                <?php endif; ?>
+
+                                <?php if (!empty($contactInfo['twitter_url']) && $contactInfo['twitter_url'] !== '#'): ?>
+                                    <a href="<?= $contactInfo['twitter_url'] ?>" target="_blank" class="text-gray-400 hover:text-blue-400 transition-colors">
+                                        <i class="fab fa-twitter text-2xl"></i>
+                                    </a>
+                                <?php endif; ?>
+
+                                <?php if (!empty($contactInfo['instagram_url']) && $contactInfo['instagram_url'] !== '#'): ?>
+                                    <a href="<?= $contactInfo['instagram_url'] ?>" target="_blank" class="text-gray-400 hover:text-pink-500 transition-colors">
+                                        <i class="fab fa-instagram text-2xl"></i>
+                                    </a>
+                                <?php endif; ?>
+
+                                <?php if (!empty($contactInfo['linkedin_url']) && $contactInfo['linkedin_url'] !== '#'): ?>
+                                    <a href="<?= $contactInfo['linkedin_url'] ?>" target="_blank" class="text-gray-400 hover:text-blue-700 transition-colors">
+                                        <i class="fab fa-linkedin text-2xl"></i>
+                                    </a>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -103,82 +112,69 @@
                         </div>
                     <?php endif; ?>
 
-                    <form action="<?= base_url('contact') ?>" method="post" class="space-y-6">
+                    <?php if (isset($validation)): ?>
+                        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-circle mr-2"></i>
+                                Please fix the following errors:
+                            </div>
+                            <ul class="mt-2 ml-6 list-disc">
+                                <?php foreach ($validation->getErrors() as $error): ?>
+                                    <li><?= $error ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <form action="<?= base_url('contact') ?>" method="POST" class="space-y-6">
                         <?= csrf_field() ?>
 
-                        <div>
-                            <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                            <div class="mt-1 relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-user text-gray-400"></i>
-                                </div>
-                                <input type="text" name="name" id="name" required
-                                    class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    value="<?= old('name') ?>">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                                <input type="text" id="name" name="name"
+                                    value="<?= old('name') ?>"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    placeholder="Enter your full name" required>
                             </div>
-                            <?php if (isset($validation) && $validation->hasError('name')): ?>
-                                <p class="mt-2 text-sm text-red-600"><?= $validation->getError('name') ?></p>
-                            <?php endif; ?>
+
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                                <input type="email" id="email" name="email"
+                                    value="<?= old('email') ?>"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    placeholder="Enter your email address" required>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                                <input type="tel" id="phone" name="phone"
+                                    value="<?= old('phone') ?>"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    placeholder="Enter your phone number">
+                            </div>
+
+                            <div>
+                                <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
+                                <input type="text" id="subject" name="subject"
+                                    value="<?= old('subject') ?>"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    placeholder="Enter message subject" required>
+                            </div>
                         </div>
 
                         <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                            <div class="mt-1 relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-envelope text-gray-400"></i>
-                                </div>
-                                <input type="email" name="email" id="email" required
-                                    class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    value="<?= old('email') ?>">
-                            </div>
-                            <?php if (isset($validation) && $validation->hasError('email')): ?>
-                                <p class="mt-2 text-sm text-red-600"><?= $validation->getError('email') ?></p>
-                            <?php endif; ?>
+                            <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Message *</label>
+                            <textarea id="message" name="message" rows="6"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                                placeholder="Enter your message here..." required><?= old('message') ?></textarea>
                         </div>
 
                         <div>
-                            <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                            <div class="mt-1 relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-phone text-gray-400"></i>
-                                </div>
-                                <input type="tel" name="phone" id="phone"
-                                    class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    value="<?= old('phone') ?>">
-                            </div>
-                            <?php if (isset($validation) && $validation->hasError('phone')): ?>
-                                <p class="mt-2 text-sm text-red-600"><?= $validation->getError('phone') ?></p>
-                            <?php endif; ?>
-                        </div>
-
-                        <div>
-                            <label for="subject" class="block text-sm font-medium text-gray-700">Subject</label>
-                            <div class="mt-1 relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-tag text-gray-400"></i>
-                                </div>
-                                <input type="text" name="subject" id="subject" required
-                                    class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    value="<?= old('subject') ?>">
-                            </div>
-                            <?php if (isset($validation) && $validation->hasError('subject')): ?>
-                                <p class="mt-2 text-sm text-red-600"><?= $validation->getError('subject') ?></p>
-                            <?php endif; ?>
-                        </div>
-
-                        <div>
-                            <label for="message" class="block text-sm font-medium text-gray-700">Message</label>
-                            <div class="mt-1">
-                                <textarea name="message" id="message" rows="4" required
-                                    class="block w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"><?= old('message') ?></textarea>
-                            </div>
-                            <?php if (isset($validation) && $validation->hasError('message')): ?>
-                                <p class="mt-2 text-sm text-red-600"><?= $validation->getError('message') ?></p>
-                            <?php endif; ?>
-                        </div>
-
-                        <div>
-                            <button type="submit" class="w-full flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <button type="submit"
+                                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
                                 <i class="fas fa-paper-plane mr-2"></i>
                                 Send Message
                             </button>
@@ -189,49 +185,37 @@
         </div>
     </div>
 
-    <!-- Map Section -->
-    <div class="py-16 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3401.5331187029444!2d74.3023514!3d31.4815856!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzHCsDI4JzUzLjciTiA3NMKwMTgnMDguNCJF!5e0!3m2!1sen!2s!4v1625136體"
-                    width="100%"
-                    height="450"
-                    style="border:0;"
-                    allowfullscreen=""
-                    loading="lazy">
-                </iframe>
-            </div>
-        </div>
-    </div>
-
     <!-- FAQ Section -->
-    <div class="py-16">
+    <div class="bg-gray-50 py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900">Frequently Asked Questions</h2>
-                <p class="mt-4 text-lg text-gray-600">Find quick answers to common questions</p>
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+                <p class="text-lg text-gray-600">Find quick answers to common questions</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">How can I participate in lucky draws?</h3>
-                    <p class="text-gray-600">Sign up, add funds to your wallet, and choose your preferred lucky draw to participate.</p>
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">How do I participate in lucky draws?</h3>
+                        <p class="text-gray-600">Simply register an account, add funds to your wallet, and enter any active draw by paying the entry fee.</p>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">When are winners announced?</h3>
+                        <p class="text-gray-600">Winners are announced on the scheduled draw date. You'll be notified via email and SMS if you win.</p>
+                    </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">What payment methods are accepted?</h3>
-                    <p class="text-gray-600">We accept PayPal and EasyPaisa for convenient and secure transactions.</p>
-                </div>
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">How do I claim my prize?</h3>
+                        <p class="text-gray-600">Winners can claim their prizes through their dashboard. Cash prizes are transferred to your wallet, while products are shipped to your address.</p>
+                    </div>
 
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">How are winners selected?</h3>
-                    <p class="text-gray-600">Winners are selected through a transparent random selection process.</p>
-                </div>
-
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">How do I claim my prize?</h3>
-                    <p class="text-gray-600">Prizes are automatically credited to your wallet or shipped to your address.</p>
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Is my payment information secure?</h3>
+                        <p class="text-gray-600">Yes, we use industry-standard encryption and secure payment gateways to protect all your financial information.</p>
+                    </div>
                 </div>
             </div>
         </div>

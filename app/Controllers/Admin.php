@@ -13,6 +13,7 @@ use App\Models\ReferralModel;
 use App\Models\WalletTopupRequestModel;
 use App\Models\UserTransferModel;
 use App\Models\SettingModel;
+use App\Models\ContactModel;
 use App\Libraries\NotificationService;
 use App\Libraries\CurrencyService;
 
@@ -29,6 +30,7 @@ class Admin extends BaseController
     protected $walletTopupRequestModel;
     protected $userTransferModel;
     protected $settingModel;
+    protected $contactModel;
     protected $notificationModel;
     protected $notificationService;
     protected $currencyService;
@@ -47,6 +49,7 @@ class Admin extends BaseController
         $this->walletTopupRequestModel = new WalletTopupRequestModel();
         $this->userTransferModel = new UserTransferModel();
         $this->settingModel = new SettingModel();
+        $this->contactModel = new ContactModel();
         $this->notificationModel = new \App\Models\NotificationModel();
         $this->notificationService = new NotificationService();
         $this->currencyService = new CurrencyService();
@@ -2977,9 +2980,26 @@ class Admin extends BaseController
             $this->settingModel->setSetting('website_name', $this->request->getPost('website_name'));
             $this->settingModel->setSetting('contact_email', $this->request->getPost('contact_email'));
             $this->settingModel->setSetting('contact_phone', $this->request->getPost('contact_phone'));
+            
+            // Additional Contact Settings
+            $this->settingModel->setSetting('contact_address', $this->request->getPost('contact_address'));
+            $this->settingModel->setSetting('contact_working_hours', $this->request->getPost('contact_working_hours'));
+            
+            // Social Media Settings
+            $this->settingModel->setSetting('facebook_url', $this->request->getPost('facebook_url'));
+            $this->settingModel->setSetting('twitter_url', $this->request->getPost('twitter_url'));
+            $this->settingModel->setSetting('instagram_url', $this->request->getPost('instagram_url'));
+            $this->settingModel->setSetting('linkedin_url', $this->request->getPost('linkedin_url'));
+            $this->settingModel->setSetting('youtube_url', $this->request->getPost('youtube_url'));
+            
+            // Footer Settings
+            $this->settingModel->setSetting('footer_description', $this->request->getPost('footer_description'));
+            $this->settingModel->setSetting('footer_copyright', $this->request->getPost('footer_copyright'));
 
             // Referral System Settings
-            $this->settingModel->setSetting('referral_bonus_percentage', $this->request->getPost('referral_bonus_percentage'));
+            $this->settingModel->setSetting('referral_bonus_amount', $this->request->getPost('referral_bonus_amount'));
+            
+            // Commission Settings
             $this->settingModel->setSetting('special_user_commission', $this->request->getPost('special_user_commission'));
 
 
@@ -3171,4 +3191,80 @@ class Admin extends BaseController
             'unread_count' => $unreadCount
         ]);
     }
+
+    // Contact Management Methods
+    public function contactSubmissions()
+    {
+        $data = [
+            'pending_submissions' => $this->contactModel->getPendingSubmissions(),
+            'processed_submissions' => $this->contactModel->getProcessedSubmissions(),
+            'stats' => $this->contactModel->getSubmissionStats()
+        ];
+
+        return view('admin/contact_submissions', $data);
+    }
+
+    public function viewContactSubmission($id)
+    {
+        $submission = $this->contactModel->find($id);
+
+        if (!$submission) {
+            return redirect()->back()->with('error', 'Contact submission not found');
+        }
+
+        return view('admin/view_contact_submission', ['submission' => $submission]);
+    }
+
+    public function updateContactSubmission()
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->back();
+        }
+
+        $id = $this->request->getPost('id');
+        $status = $this->request->getPost('status');
+        $adminNotes = $this->request->getPost('admin_notes');
+
+        $submission = $this->contactModel->find($id);
+        if (!$submission) {
+            return redirect()->back()->with('error', 'Contact submission not found');
+        }
+
+        $updateData = [
+            'status' => $status,
+            'admin_notes' => $adminNotes
+        ];
+
+        if ($this->contactModel->update($id, $updateData)) {
+            // Send notification to user if replied
+            if ($status === 'replied') {
+                try {
+                    $this->notificationService->sendContactReplyNotification($submission, $adminNotes);
+                } catch (\Exception $e) {
+                    log_message('error', 'Failed to send contact reply notification: ' . $e->getMessage());
+                }
+            }
+
+            return redirect()->back()->with('success', 'Contact submission updated successfully');
+        } else {
+            return redirect()->back()->with('error', 'Failed to update contact submission');
+        }
+    }
+
+    public function deleteContactSubmission($id)
+    {
+        $submission = $this->contactModel->find($id);
+
+        if (!$submission) {
+            return redirect()->back()->with('error', 'Contact submission not found');
+        }
+
+        if ($this->contactModel->delete($id)) {
+            return redirect()->back()->with('success', 'Contact submission deleted successfully');
+        } else {
+            return redirect()->back()->with('error', 'Failed to delete contact submission');
+        }
+    }
+
+
 }

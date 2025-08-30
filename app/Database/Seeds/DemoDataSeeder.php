@@ -47,7 +47,7 @@ class DemoDataSeeder extends Seeder
         }
 
         // Create sample lucky draws
-        $luckyDrawModel = new \App\Models\LuckyDrawModel();
+        $luckyDrawModel = new \App\Models\LuckDrawModel();
         $draws = [
             [
                 'title' => 'Weekly Cash Prize - $500',

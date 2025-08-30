@@ -4,13 +4,13 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class SimplifyLuckyDrawsStructure extends Migration
+class SimplifyLuckDrawsStructure extends Migration
 {
     public function up()
     {
         // Drop the existing lucky_draws table
         $this->forge->dropTable('lucky_draws');
-        
+
         // Create cash_draws table for cash-based lucky draws
         $this->forge->addField([
             'id' => [
@@ -185,7 +185,7 @@ class SimplifyLuckyDrawsStructure extends Migration
         $this->forge->dropTable('product_draws');
         $this->forge->dropTable('cash_draw_entries');
         $this->forge->dropTable('cash_draws');
-        
+
         // Recreate the old lucky_draws table (you would need to restore the original structure)
     }
 }

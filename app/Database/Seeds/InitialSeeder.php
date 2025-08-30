@@ -21,7 +21,7 @@ class InitialSeeder extends Seeder
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
-        
+
         $userModel->insert($adminData);
 
         // Create default settings
@@ -40,7 +40,7 @@ class InitialSeeder extends Seeder
         }
 
         // Create sample lucky draw
-        $luckyDrawModel = new \App\Models\LuckyDrawModel();
+        $luckyDrawModel = new \App\Models\LuckDrawModel();
         $sampleDraw = [
             'title' => 'Welcome Lucky Draw',
             'description' => 'Join our first lucky draw and win exciting prizes!',

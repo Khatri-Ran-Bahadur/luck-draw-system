@@ -34,7 +34,9 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600">Pending</p>
-                        <p class="text-2xl font-bold text-yellow-600"><?= count(array_filter($requests, function($r) { return $r['status'] === 'pending'; })) ?></p>
+                        <p class="text-2xl font-bold text-yellow-600"><?= count(array_filter($requests, function ($r) {
+                                                                            return $r['status'] === 'pending';
+                                                                        })) ?></p>
                     </div>
                     <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
                         <i class="fas fa-clock text-yellow-600 text-xl"></i>
@@ -121,12 +123,12 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex space-x-2">
-                                            <button onclick="approveRequest(<?= $request['id'] ?>)" 
-                                                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                            <button onclick="approveRequest(<?= $request['id'] ?>)"
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                                 <i class="fas fa-check mr-1"></i>Approve
                                             </button>
-                                            <button onclick="rejectRequest(<?= $request['id'] ?>)" 
-                                                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                            <button onclick="rejectRequest(<?= $request['id'] ?>)"
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                                 <i class="fas fa-times mr-1"></i>Reject
                                             </button>
                                         </div>
@@ -158,68 +160,68 @@
 </div>
 
 <script>
-let currentRequestId = null;
-let currentAction = '';
+    let currentRequestId = null;
+    let currentAction = '';
 
-function approveRequest(requestId) {
-    currentRequestId = requestId;
-    currentAction = 'approve';
-    document.getElementById('modalTitle').textContent = 'Approve Request';
-    document.getElementById('approvalNotes').placeholder = 'Add approval notes (optional)';
-    document.getElementById('confirmAction').className = 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700';
-    document.getElementById('confirmAction').textContent = 'Approve';
-    document.getElementById('approvalModal').classList.remove('hidden');
-}
+    function approveRequest(requestId) {
+        currentRequestId = requestId;
+        currentAction = 'approve';
+        document.getElementById('modalTitle').textContent = 'Approve Request';
+        document.getElementById('approvalNotes').placeholder = 'Add approval notes (optional)';
+        document.getElementById('confirmAction').className = 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700';
+        document.getElementById('confirmAction').textContent = 'Approve';
+        document.getElementById('approvalModal').classList.remove('hidden');
+    }
 
-function rejectRequest(requestId) {
-    currentRequestId = requestId;
-    currentAction = 'reject';
-    document.getElementById('modalTitle').textContent = 'Reject Request';
-    document.getElementById('approvalNotes').placeholder = 'Add rejection reason (optional)';
-    document.getElementById('confirmAction').className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700';
-    document.getElementById('confirmAction').textContent = 'Reject';
-    document.getElementById('approvalModal').classList.remove('hidden');
-}
+    function rejectRequest(requestId) {
+        currentRequestId = requestId;
+        currentAction = 'reject';
+        document.getElementById('modalTitle').textContent = 'Reject Request';
+        document.getElementById('approvalNotes').placeholder = 'Add rejection reason (optional)';
+        document.getElementById('confirmAction').className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700';
+        document.getElementById('confirmAction').textContent = 'Reject';
+        document.getElementById('approvalModal').classList.remove('hidden');
+    }
 
-function closeModal() {
-    document.getElementById('approvalModal').classList.add('hidden');
-    document.getElementById('approvalNotes').value = '';
-}
+    function closeModal() {
+        document.getElementById('approvalModal').classList.add('hidden');
+        document.getElementById('approvalNotes').value = '';
+    }
 
-document.getElementById('confirmAction').addEventListener('click', function() {
-    if (!currentRequestId) return;
-    
-    const notes = document.getElementById('approvalNotes').value;
-    const url = currentAction === 'approve' 
-        ? `<?= base_url('wallet/approve-topup') ?>/${currentRequestId}`
-        : `<?= base_url('wallet/reject-topup') ?>/${currentRequestId}`;
-    
-    // Create form data
-    const formData = new FormData();
-    formData.append('notes', notes);
-    
-    // Submit request
-    fetch(url, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload(); // Refresh page to show updated data
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while processing the request');
-    })
-    .finally(() => {
-        closeModal();
+    document.getElementById('confirmAction').addEventListener('click', function() {
+        if (!currentRequestId) return;
+
+        const notes = document.getElementById('approvalNotes').value;
+        const url = currentAction === 'approve' ?
+            `<?= base_url('wallet/approve-topup') ?>/${currentRequestId}` :
+            `<?= base_url('wallet/reject-topup') ?>/${currentRequestId}`;
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('notes', notes);
+
+        // Submit request
+        fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload(); // Refresh page to show updated data
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing the request');
+            })
+            .finally(() => {
+                closeModal();
+            });
     });
-});
 </script>
 
 <?= $this->endSection() ?>

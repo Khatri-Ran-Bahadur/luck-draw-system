@@ -148,11 +148,20 @@ $routes->group('admin', ['filter' => 'admin'], function ($routes) {
     $routes->get('admins/delete/(:num)', 'Admin::deleteAdmin/$1');
 
     $routes->get('lucky-draws', 'Admin::luckyDraws');
-    $routes->get('lucky-draws/create', 'Admin::createLuckyDraw');
-    $routes->post('lucky-draws/create', 'Admin::createLuckyDraw');
-    $routes->get('lucky-draws/edit/(:num)', 'Admin::editLuckyDraw/$1');
-    $routes->post('lucky-draws/edit/(:num)', 'Admin::editLuckyDraw/$1');
-    $routes->get('lucky-draws/delete/(:num)', 'Admin::deleteLuckyDraw/$1');
+    $routes->get('cash-draws', 'Admin::cashDraws');
+    $routes->get('cash-draws/create', 'Admin::createCashDraw');
+    $routes->post('cash-draws/create', 'Admin::createCashDraw');
+    $routes->get('cash-draws/edit/(:num)', 'Admin::editCashDraw/$1');
+    $routes->post('cash-draws/edit/(:num)', 'Admin::editCashDraw/$1');
+    $routes->get('cash-draws/delete/(:num)', 'Admin::deleteCashDraw/$1');
+
+    $routes->get('product-draws', 'Admin::productDraws');
+    $routes->get('product-draws/create', 'Admin::createProductDraw');
+    $routes->post('product-draws/create', 'Admin::createProductDraw');
+    $routes->get('product-draws/edit/(:num)', 'Admin::editProductDraw/$1');
+    $routes->post('product-draws/edit/(:num)', 'Admin::editProductDraw/$1');
+    $routes->get('product-draws/delete/(:num)', 'Admin::deleteProductDraw/$1');
+
     $routes->get('lucky-draws/select-winners/(:num)', 'Admin::selectWinners/$1');
     $routes->post('lucky-draws/select-winners/(:num)', 'Admin::selectWinners/$1');
 
@@ -249,6 +258,12 @@ $routes->group('admin', ['filter' => 'admin'], function ($routes) {
     $routes->post('edit-special-user/(:num)', 'Admin::editSpecialUser/$1');
     $routes->get('make-special-user/(:num)', 'Admin::makeSpecialUser/$1');
     $routes->get('remove-special-user/(:num)', 'Admin::removeSpecialUser/$1');
+
+    // Contact Management Routes
+    $routes->get('contact-submissions', 'Admin::contactSubmissions');
+    $routes->get('contact-submission/(:num)', 'Admin::viewContactSubmission/$1');
+    $routes->post('update-contact-submission', 'Admin::updateContactSubmission');
+    $routes->get('delete-contact-submission/(:num)', 'Admin::deleteContactSubmission/$1');
 
     // Lucky Draw admin routes (consolidated)
     $routes->get('draws', 'LuckyDraw::adminDraws');
